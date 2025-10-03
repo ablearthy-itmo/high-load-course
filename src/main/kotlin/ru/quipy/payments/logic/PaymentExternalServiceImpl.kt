@@ -51,6 +51,18 @@ class PaymentExternalSystemAdapterImpl(
         .tags("serviceName", serviceName, "accountName", accountName)
         .register(meterRegistry)
 
+    private fun getPaymentResponsesCounter(status: String): Counter {
+        return Counter.builder("payment.responses")
+            .description("Total number of payment responses received")
+            .tags(
+                "serviceName", serviceName,
+                "accountName", accountName,
+                "status", status
+            )
+            .register(meterRegistry)
+    }
+
+
     override fun performPaymentAsync(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
         logger.warn("[$accountName] Submitting payment request for payment $paymentId")
         paymentRequestsCounter.increment()
@@ -77,6 +89,7 @@ class PaymentExternalSystemAdapterImpl(
 
             if ((now() + requestAverageProcessingTime.toMillis()) > deadline) {
                 logger.warn("[$accountName] Payment expired for txId: $transactionId, payment: $paymentId")
+                getPaymentResponsesCounter("expired").increment()
                 paymentESService.update(paymentId) {
                     it.logProcessing(false, now(), transactionId, reason = "Payment expired.")
                 }
@@ -92,7 +105,7 @@ class PaymentExternalSystemAdapterImpl(
                 }
 
                 logger.warn("[$accountName] Payment processed for txId: $transactionId, payment: $paymentId, succeeded: ${body.result}, message: ${body.message}")
-
+                getPaymentResponsesCounter(if (body.result) "success" else "error").increment()
                 // Здесь мы обновляем состояние оплаты в зависимости от результата в базе данных оплат.
                 // Это требуется сделать ВО ВСЕХ ИСХОДАХ (успешная оплата / неуспешная / ошибочная ситуация)
                 paymentESService.update(paymentId) {
@@ -116,6 +129,7 @@ class PaymentExternalSystemAdapterImpl(
                     }
                 }
             }
+            getPaymentResponsesCounter("exception_error").increment()
         } finally {
             ongoingWindow.release()
         }
