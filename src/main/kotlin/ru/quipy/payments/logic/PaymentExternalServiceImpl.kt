@@ -1,5 +1,6 @@
 package ru.quipy.payments.logic
 
+import org.springframework.beans.factory.annotation.Autowired
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import okhttp3.OkHttpClient
@@ -14,13 +15,17 @@ import java.net.SocketTimeoutException
 import java.time.Duration
 import java.util.*
 
+import io.micrometer.core.instrument.Counter
+import io.micrometer.core.instrument.MeterRegistry
+
 
 // Advice: always treat time as a Duration
 class PaymentExternalSystemAdapterImpl(
     private val properties: PaymentAccountProperties,
     private val paymentESService: EventSourcingService<UUID, PaymentAggregate, PaymentAggregateState>,
+    private val meterRegistry: MeterRegistry,
     private val paymentProviderHostPort: String,
-    private val token: String,
+    private val token: String
 ) : PaymentExternalSystemAdapter {
 
     companion object {
@@ -41,8 +46,14 @@ class PaymentExternalSystemAdapterImpl(
 
     private val client = OkHttpClient.Builder().build()
 
+    private val paymentRequestsCounter: Counter = Counter.builder("payment.requests")
+        .description("Total number of payment requests received")
+        .tags("serviceName", serviceName, "accountName", accountName)
+        .register(meterRegistry)
+
     override fun performPaymentAsync(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
         logger.warn("[$accountName] Submitting payment request for payment $paymentId")
+        paymentRequestsCounter.increment()
 
         val transactionId = UUID.randomUUID()
 
