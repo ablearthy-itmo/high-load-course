@@ -63,6 +63,14 @@ class PaymentExternalSystemAdapterImpl(
             }.build()
 
             rateLimiter.tickBlocking()
+
+            if ((now() + requestAverageProcessingTime.toMillis()) > deadline) {
+                logger.warn("[$accountName] Payment expired for txId: $transactionId, payment: $paymentId")
+                paymentESService.update(paymentId) {
+                    it.logProcessing(false, now(), transactionId, reason = "Payment expired.")
+                }
+                return
+            }
             
             client.newCall(request).execute().use { response ->
                 val body = try {
