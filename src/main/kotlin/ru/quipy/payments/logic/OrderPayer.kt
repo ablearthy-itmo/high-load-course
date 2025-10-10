@@ -12,6 +12,8 @@ import java.util.*
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import org.springframework.web.server.ResponseStatusException
+import org.springframework.http.HttpStatus
 
 @Service
 class OrderPayer {
@@ -37,6 +39,14 @@ class OrderPayer {
     )
 
     fun processPayment(orderId: UUID, amount: Int, paymentId: UUID, deadline: Long): Long {
+        if (paymentExecutor.getQueue().remainingCapacity() < 7_980) {
+             logger.trace("Payment ${createdEvent.paymentId} for order $orderId not created (429).")
+             throw ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS, 
+                "Too many requests. Please try again later."
+            )
+        }
+        
         val createdAt = System.currentTimeMillis()
         paymentExecutor.submit {
             val createdEvent = paymentESService.create {
