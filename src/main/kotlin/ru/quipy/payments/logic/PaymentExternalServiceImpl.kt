@@ -14,8 +14,10 @@ import ru.quipy.payments.api.PaymentAggregate
 import java.net.SocketTimeoutException
 import java.time.Duration
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 import io.micrometer.core.instrument.Counter
+import io.micrometer.core.instrument.Timer
 import io.micrometer.core.instrument.MeterRegistry
 
 
@@ -48,6 +50,11 @@ class PaymentExternalSystemAdapterImpl(
 
     private val paymentRequestsCounter: Counter = Counter.builder("payment.requests")
         .description("Total number of payment requests received")
+        .tags("serviceName", serviceName, "accountName", accountName)
+        .register(meterRegistry)
+
+    private val paymentProcessingTimer: Timer = Timer.builder("payment.processing")
+        .description("Payment system response timings")
         .tags("serviceName", serviceName, "accountName", accountName)
         .register(meterRegistry)
 
@@ -87,16 +94,20 @@ class PaymentExternalSystemAdapterImpl(
 
             rateLimiter.tickBlocking()
 
-            if ((now() + requestAverageProcessingTime.toMillis()) > deadline) {
+            if ((now() + requestAverageProcessingTime.toMillis() + 4000) > deadline) {
                 logger.warn("[$accountName] Payment expired for txId: $transactionId, payment: $paymentId")
-                getPaymentResponsesCounter("expired").increment()
+                getPaymentResponsesCounter("theoretical_expired").increment()
                 paymentESService.update(paymentId) {
                     it.logProcessing(false, now(), transactionId, reason = "Payment expired.")
                 }
                 return
             }
-            
+
+            val startedAt = now()
             client.newCall(request).execute().use { response ->
+                val finishedAt = now()
+                paymentProcessingTimer.record(finishedAt - startedAt, TimeUnit.MILLISECONDS)
+
                 val body = try {
                     mapper.readValue(response.body?.string(), ExternalSysResponse::class.java)
                 } catch (e: Exception) {
@@ -105,7 +116,11 @@ class PaymentExternalSystemAdapterImpl(
                 }
 
                 logger.warn("[$accountName] Payment processed for txId: $transactionId, payment: $paymentId, succeeded: ${body.result}, message: ${body.message}")
-                getPaymentResponsesCounter(if (body.result) "success" else "error").increment()
+                if (finishedAt > deadline) {
+                    getPaymentResponsesCounter("real_expired").increment()
+                } else {
+                    getPaymentResponsesCounter(if (body.result) "success" else "error").increment()
+                }
                 // Здесь мы обновляем состояние оплаты в зависимости от результата в базе данных оплат.
                 // Это требуется сделать ВО ВСЕХ ИСХОДАХ (успешная оплата / неуспешная / ошибочная ситуация)
                 paymentESService.update(paymentId) {
