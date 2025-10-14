@@ -113,6 +113,7 @@ class PaymentExternalSystemAdapterImpl(
             client.newCall(request).execute().use { response ->
                 val finishedAt = now()
                 paymentSystemProcessingTimer.record(finishedAt - startedAt, TimeUnit.MILLISECONDS)
+                logger.info("Request to payment system for payment $paymentId processed in ${finishedAt - startedPaymentAt}ms")
 
                 val body = try {
                     mapper.readValue(response.body?.string(), ExternalSysResponse::class.java)
@@ -152,9 +153,10 @@ class PaymentExternalSystemAdapterImpl(
             }
             getPaymentResponsesCounter("exception_error").increment()
         } finally {
+            ongoingWindow.release()
             val finishedPaymentAt = now()
             paymentProcessingTimer.record(finishedPaymentAt - startedPaymentAt, TimeUnit.MILLISECONDS)
-            ongoingWindow.release()
+            logger.info("Payment $paymentId processed in ${finishedPaymentAt - startedPaymentAt}ms, time to deadline ${deadline - finishedPaymentAt}ms")
         }
     }
 

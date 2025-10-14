@@ -26,6 +26,8 @@ class OrderPayer {
     @Autowired
     private lateinit var paymentService: PaymentService
 
+    private val paymentTaskQueue = LinkedBlockingQueue<PaymentTask>()
+
     private val paymentExecutor = ThreadPoolExecutor(
         16,
         16,
@@ -34,22 +36,53 @@ class OrderPayer {
         LinkedBlockingQueue(8_000),
         NamedThreadFactory("payment-submission-executor"),
         CallerBlockingRejectedExecutionHandler()
-    )
+    ).apply {
+        repeat(16) {
+            submit {
+                while (!Thread.currentThread().isInterrupted) {
+                    try {
+                        val task = paymentTaskQueue.take()
+                        processPaymentTask(task)
+                    } catch (e: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                        break
+                    } catch (e: Exception) {
+                        logger.error("Error processing payment task", e)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun processPaymentTask(task: PaymentTask) {
+        val createdEvent = paymentESService.create {
+            it.create(
+                task.paymentId,
+                task.orderId,
+                task.amount
+            )
+        }
+        logger.trace("Payment ${createdEvent.paymentId} for order ${task.orderId} created.")
+
+        paymentService.submitPaymentRequest(task.paymentId, task.amount, task.createdAt, task.deadline)
+    }
 
     fun processPayment(orderId: UUID, amount: Int, paymentId: UUID, deadline: Long): Long {
         val createdAt = System.currentTimeMillis()
-        paymentExecutor.submit {
-            val createdEvent = paymentESService.create {
-                it.create(
-                    paymentId,
-                    orderId,
-                    amount
-                )
-            }
-            logger.trace("Payment ${createdEvent.paymentId} for order $orderId created.")
 
-            paymentService.submitPaymentRequest(paymentId, amount, createdAt, deadline)
-        }
+        val task = PaymentTask(orderId, amount, paymentId, deadline, createdAt)
+        logger.trace("Create task for payment $paymentId (orderId=$orderId)")
+        paymentTaskQueue.put(task)
+
         return createdAt
     }
+
+    private data class PaymentTask(
+        val orderId: UUID,
+        val amount: Int,
+        val paymentId: UUID,
+        val deadline: Long,
+        val createdAt: Long
+    )
+
 }
