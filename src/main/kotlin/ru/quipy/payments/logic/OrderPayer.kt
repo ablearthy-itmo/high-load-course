@@ -4,6 +4,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import org.springframework.web.server.ResponseStatusException
+import org.springframework.http.HttpStatus
 import ru.quipy.common.utils.CallerBlockingRejectedExecutionHandler
 import ru.quipy.common.utils.NamedThreadFactory
 import ru.quipy.core.EventSourcingService
@@ -70,12 +72,22 @@ class OrderPayer {
     fun processPayment(orderId: UUID, amount: Int, paymentId: UUID, deadline: Long): Long {
         val createdAt = System.currentTimeMillis()
 
+        if (now() + paymentTaskQueue.size * 2000 / 16 >= deadline) {
+             logger.trace("Payment $paymentId for order $orderId not created (too many requests)")
+             throw ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again later."
+            )
+        }
+
         val task = PaymentTask(orderId, amount, paymentId, deadline, createdAt)
         logger.trace("Create task for payment $paymentId (orderId=$orderId)")
         paymentTaskQueue.put(task)
 
         return createdAt
     }
+
+    private fun now() = System.currentTimeMillis()
 
     private data class PaymentTask(
         val orderId: UUID,
