@@ -14,6 +14,7 @@ import java.util.*
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import ru.quipy.common.utils.ProcessingTimeCounter
 
 @Service
 class OrderPayer {
@@ -30,6 +31,8 @@ class OrderPayer {
 
     private val paymentTaskQueue = LinkedBlockingQueue<PaymentTask>()
 
+    private val processingTimeCounter = ProcessingTimeCounter()
+
     private val paymentExecutor = ThreadPoolExecutor(
         16,
         16,
@@ -44,7 +47,9 @@ class OrderPayer {
                 while (!Thread.currentThread().isInterrupted) {
                     try {
                         val task = paymentTaskQueue.take()
+                        val taskStartedAt = now()
                         processPaymentTask(task)
+                        processingTimeCounter.record(now() - taskStartedAt)
                     } catch (e: InterruptedException) {
                         Thread.currentThread().interrupt()
                         break
@@ -71,9 +76,12 @@ class OrderPayer {
 
     fun processPayment(orderId: UUID, amount: Int, paymentId: UUID, deadline: Long): Long {
         val createdAt = System.currentTimeMillis()
+        val averageProcessingTime = processingTimeCounter.getAverage()
+        logger.info("Current averageProcessingTime is ${averageProcessingTime}ms")
+        val queueProcessingTime = paymentTaskQueue.size * averageProcessingTime / 16
 
-        if (now() + paymentTaskQueue.size * 2000 / 16 >= deadline) {
-             logger.trace("Payment $paymentId for order $orderId not created (too many requests)")
+        if (now() + queueProcessingTime + averageProcessingTime >= deadline) {
+             logger.warn("Payment $paymentId for order $orderId not created (too many requests)")
              throw ResponseStatusException(
                 HttpStatus.TOO_MANY_REQUESTS,
                 "Too many requests. Please try again later."
