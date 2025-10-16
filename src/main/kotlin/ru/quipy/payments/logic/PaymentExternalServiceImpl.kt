@@ -94,7 +94,7 @@ class PaymentExternalSystemAdapterImpl(
 
             rateLimiter.tickBlocking()
 
-            if ((now() + requestAverageProcessingTime.toMillis() + 4000) > deadline) {
+            if ((now() + requestAverageProcessingTime.toMillis() * 2) > deadline) {
                 logger.warn("[$accountName] Payment expired for txId: $transactionId, payment: $paymentId")
                 getPaymentResponsesCounter("theoretical_expired").increment()
                 paymentESService.update(paymentId) {
