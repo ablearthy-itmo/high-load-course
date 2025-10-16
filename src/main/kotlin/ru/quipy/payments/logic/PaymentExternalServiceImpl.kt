@@ -60,6 +60,7 @@ class PaymentExternalSystemAdapterImpl(
 
     private val paymentProcessingTimer: Timer = Timer.builder("payment.processing")
         .description("Payment processing timings")
+        .publishPercentileHistogram()
         .tags("serviceName", serviceName, "accountName", accountName)
         .register(meterRegistry)
 
@@ -93,12 +94,13 @@ class PaymentExternalSystemAdapterImpl(
         ongoingWindow.acquire()
     
         try {
+            rateLimiter.tickBlocking()
+
             val request = Request.Builder().run {
                 url("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=$transactionId&paymentId=$paymentId&amount=$amount")
                 post(emptyBody)
             }.build()
 
-            rateLimiter.tickBlocking()
 
             if ((now() + requestAverageProcessingTime.toMillis() + 4000) > deadline) {
                 logger.warn("[$accountName] Payment expired for txId: $transactionId, payment: $paymentId")

@@ -33,16 +33,18 @@ class OrderPayer {
 
     private val processingTimeCounter = ProcessingTimeCounter()
 
+    private val workersCount = 16
+
     private val paymentExecutor = ThreadPoolExecutor(
-        16,
-        16,
+        workersCount,
+        workersCount,
         0L,
         TimeUnit.MILLISECONDS,
         LinkedBlockingQueue(8_000),
         NamedThreadFactory("payment-submission-executor"),
         CallerBlockingRejectedExecutionHandler()
     ).apply {
-        repeat(16) {
+        repeat(workersCount) {
             submit {
                 while (!Thread.currentThread().isInterrupted) {
                     try {
@@ -78,7 +80,7 @@ class OrderPayer {
         val createdAt = System.currentTimeMillis()
         val averageProcessingTime = processingTimeCounter.getAverage()
         logger.info("Current averageProcessingTime is ${averageProcessingTime}ms")
-        val queueProcessingTime = paymentTaskQueue.size * averageProcessingTime / 16
+        val queueProcessingTime = paymentTaskQueue.size * averageProcessingTime / workersCount
 
         if (now() + queueProcessingTime + averageProcessingTime >= deadline) {
              logger.warn("Payment $paymentId for order $orderId not created (too many requests)")
