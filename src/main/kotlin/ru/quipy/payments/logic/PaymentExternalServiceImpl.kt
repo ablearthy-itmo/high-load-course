@@ -1,5 +1,6 @@
 package ru.quipy.payments.logic
 
+import org.springframework.beans.factory.annotation.Autowired
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import okhttp3.OkHttpClient
@@ -13,14 +14,20 @@ import ru.quipy.payments.api.PaymentAggregate
 import java.net.SocketTimeoutException
 import java.time.Duration
 import java.util.*
+import java.util.concurrent.TimeUnit
+
+import io.micrometer.core.instrument.Counter
+import io.micrometer.core.instrument.Timer
+import io.micrometer.core.instrument.MeterRegistry
 
 
 // Advice: always treat time as a Duration
 class PaymentExternalSystemAdapterImpl(
     private val properties: PaymentAccountProperties,
     private val paymentESService: EventSourcingService<UUID, PaymentAggregate, PaymentAggregateState>,
+    private val meterRegistry: MeterRegistry,
     private val paymentProviderHostPort: String,
-    private val token: String,
+    private val token: String
 ) : PaymentExternalSystemAdapter {
 
     companion object {
@@ -41,8 +48,39 @@ class PaymentExternalSystemAdapterImpl(
 
     private val client = OkHttpClient.Builder().build()
 
+    private val paymentRequestsCounter: Counter = Counter.builder("payment.requests")
+        .description("Total number of payment requests received")
+        .tags("serviceName", serviceName, "accountName", accountName)
+        .register(meterRegistry)
+
+    private val paymentProcessingTimer: Timer = Timer.builder("payment.processing")
+        .description("Payment system response timings")
+        .publishPercentileHistogram()
+        .tags("serviceName", serviceName, "accountName", accountName)
+        .register(meterRegistry)
+
+    private val paymentQueueTimer: Timer = Timer.builder("payment.queue")
+        .description("Time spent in queue")
+        .publishPercentileHistogram()
+        .tags("serviceName", serviceName, "accountName", accountName)
+        .register(meterRegistry)
+
+    private fun getPaymentResponsesCounter(status: String): Counter {
+        return Counter.builder("payment.responses")
+            .description("Total number of payment responses received")
+            .tags(
+                "serviceName", serviceName,
+                "accountName", accountName,
+                "status", status
+            )
+            .register(meterRegistry)
+    }
+
+
     override fun performPaymentAsync(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
+        val veryStart = now()
         logger.warn("[$accountName] Submitting payment request for payment $paymentId")
+        paymentRequestsCounter.increment()
 
         val transactionId = UUID.randomUUID()
 
@@ -63,8 +101,23 @@ class PaymentExternalSystemAdapterImpl(
             }.build()
 
             rateLimiter.tickBlocking()
-            
+
+            paymentQueueTimer.record(now() - veryStart, TimeUnit.MILLISECONDS)
+
+            if ((now() + requestAverageProcessingTime.toMillis() * 2) > deadline) {
+                logger.warn("[$accountName] Payment expired for txId: $transactionId, payment: $paymentId")
+                getPaymentResponsesCounter("theoretical_expired").increment()
+                paymentESService.update(paymentId) {
+                    it.logProcessing(false, now(), transactionId, reason = "Payment expired.")
+                }
+                return
+            }
+
+            val startedAt = now()
             client.newCall(request).execute().use { response ->
+                val finishedAt = now()
+                paymentProcessingTimer.record(finishedAt - startedAt, TimeUnit.MILLISECONDS)
+
                 val body = try {
                     mapper.readValue(response.body?.string(), ExternalSysResponse::class.java)
                 } catch (e: Exception) {
@@ -73,7 +126,11 @@ class PaymentExternalSystemAdapterImpl(
                 }
 
                 logger.warn("[$accountName] Payment processed for txId: $transactionId, payment: $paymentId, succeeded: ${body.result}, message: ${body.message}")
-
+                if (finishedAt > deadline) {
+                    getPaymentResponsesCounter("real_expired").increment()
+                } else {
+                    getPaymentResponsesCounter(if (body.result) "success" else "error").increment()
+                }
                 // Здесь мы обновляем состояние оплаты в зависимости от результата в базе данных оплат.
                 // Это требуется сделать ВО ВСЕХ ИСХОДАХ (успешная оплата / неуспешная / ошибочная ситуация)
                 paymentESService.update(paymentId) {
@@ -97,6 +154,7 @@ class PaymentExternalSystemAdapterImpl(
                     }
                 }
             }
+            getPaymentResponsesCounter("exception_error").increment()
         } finally {
             ongoingWindow.release()
         }
