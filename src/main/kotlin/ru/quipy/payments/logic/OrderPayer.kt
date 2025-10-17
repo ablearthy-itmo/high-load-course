@@ -80,7 +80,7 @@ class OrderPayer {
         val createdAt = System.currentTimeMillis()
         val averageProcessingTime = processingTimeCounter.getAverage()
         logger.info("Current averageProcessingTime is ${averageProcessingTime}ms")
-        val queueProcessingTime = paymentTaskQueue.size * averageProcessingTime / workersCount
+        val queueProcessingTime = (paymentTaskQueue.size + workersCount) * averageProcessingTime / workersCount
 
         if (now() + queueProcessingTime + averageProcessingTime >= deadline) {
              logger.warn("Payment $paymentId for order $orderId not created (too many requests)")
