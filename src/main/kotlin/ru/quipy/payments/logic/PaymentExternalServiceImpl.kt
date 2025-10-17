@@ -53,8 +53,14 @@ class PaymentExternalSystemAdapterImpl(
         .tags("serviceName", serviceName, "accountName", accountName)
         .register(meterRegistry)
 
-    private val paymentProcessingTimer: Timer = Timer.builder("payment.processing")
+    private val paymentSystemProcessingTimer: Timer = Timer.builder("payment_system.processing")
         .description("Payment system response timings")
+        .tags("serviceName", serviceName, "accountName", accountName)
+        .register(meterRegistry)
+
+    private val paymentProcessingTimer: Timer = Timer.builder("payment.processing")
+        .description("Payment processing timings")
+        .publishPercentileHistogram()
         .tags("serviceName", serviceName, "accountName", accountName)
         .register(meterRegistry)
 
@@ -71,6 +77,7 @@ class PaymentExternalSystemAdapterImpl(
 
 
     override fun performPaymentAsync(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
+        val startedPaymentAt = now()
         logger.warn("[$accountName] Submitting payment request for payment $paymentId")
         paymentRequestsCounter.increment()
 
@@ -87,12 +94,13 @@ class PaymentExternalSystemAdapterImpl(
         ongoingWindow.acquire()
     
         try {
+            rateLimiter.tickBlocking()
+
             val request = Request.Builder().run {
                 url("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=$transactionId&paymentId=$paymentId&amount=$amount")
                 post(emptyBody)
             }.build()
 
-            rateLimiter.tickBlocking()
 
             if ((now() + requestAverageProcessingTime.toMillis() * 2) > deadline) {
                 logger.warn("[$accountName] Payment expired for txId: $transactionId, payment: $paymentId")
@@ -106,7 +114,8 @@ class PaymentExternalSystemAdapterImpl(
             val startedAt = now()
             client.newCall(request).execute().use { response ->
                 val finishedAt = now()
-                paymentProcessingTimer.record(finishedAt - startedAt, TimeUnit.MILLISECONDS)
+                paymentSystemProcessingTimer.record(finishedAt - startedAt, TimeUnit.MILLISECONDS)
+                logger.info("Request to payment system for payment $paymentId processed in ${finishedAt - startedPaymentAt}ms")
 
                 val body = try {
                     mapper.readValue(response.body?.string(), ExternalSysResponse::class.java)
@@ -147,6 +156,9 @@ class PaymentExternalSystemAdapterImpl(
             getPaymentResponsesCounter("exception_error").increment()
         } finally {
             ongoingWindow.release()
+            val finishedPaymentAt = now()
+            paymentProcessingTimer.record(finishedPaymentAt - startedPaymentAt, TimeUnit.MILLISECONDS)
+            logger.info("Payment $paymentId processed in ${finishedPaymentAt - startedPaymentAt}ms, time to deadline ${deadline - finishedPaymentAt}ms")
         }
     }
 

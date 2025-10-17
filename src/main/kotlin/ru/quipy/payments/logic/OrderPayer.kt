@@ -4,6 +4,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import org.springframework.web.server.ResponseStatusException
+import org.springframework.http.HttpStatus
 import ru.quipy.common.utils.CallerBlockingRejectedExecutionHandler
 import ru.quipy.common.utils.NamedThreadFactory
 import ru.quipy.core.EventSourcingService
@@ -12,6 +14,7 @@ import java.util.*
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import ru.quipy.common.utils.ProcessingTimeCounter
 
 @Service
 class OrderPayer {
@@ -26,30 +29,82 @@ class OrderPayer {
     @Autowired
     private lateinit var paymentService: PaymentService
 
+    private val paymentTaskQueue = LinkedBlockingQueue<PaymentTask>()
+
+    private val processingTimeCounter = ProcessingTimeCounter()
+
+    private val workersCount = 16
+
     private val paymentExecutor = ThreadPoolExecutor(
-        16,
-        16,
+        workersCount,
+        workersCount,
         0L,
         TimeUnit.MILLISECONDS,
         LinkedBlockingQueue(8_000),
         NamedThreadFactory("payment-submission-executor"),
         CallerBlockingRejectedExecutionHandler()
-    )
+    ).apply {
+        repeat(workersCount) {
+            submit {
+                while (!Thread.currentThread().isInterrupted) {
+                    try {
+                        val task = paymentTaskQueue.take()
+                        val taskStartedAt = now()
+                        processPaymentTask(task)
+                        processingTimeCounter.record(now() - taskStartedAt)
+                    } catch (e: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                        break
+                    } catch (e: Exception) {
+                        logger.error("Error processing payment task", e)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun processPaymentTask(task: PaymentTask) {
+        val createdEvent = paymentESService.create {
+            it.create(
+                task.paymentId,
+                task.orderId,
+                task.amount
+            )
+        }
+        logger.trace("Payment ${createdEvent.paymentId} for order ${task.orderId} created.")
+
+        paymentService.submitPaymentRequest(task.paymentId, task.amount, task.createdAt, task.deadline)
+    }
 
     fun processPayment(orderId: UUID, amount: Int, paymentId: UUID, deadline: Long): Long {
         val createdAt = System.currentTimeMillis()
-        paymentExecutor.submit {
-            val createdEvent = paymentESService.create {
-                it.create(
-                    paymentId,
-                    orderId,
-                    amount
-                )
-            }
-            logger.trace("Payment ${createdEvent.paymentId} for order $orderId created.")
+        val averageProcessingTime = processingTimeCounter.getAverage()
+        logger.info("Current averageProcessingTime is ${averageProcessingTime}ms")
+        val queueProcessingTime = (paymentTaskQueue.size + workersCount) * averageProcessingTime / workersCount
 
-            paymentService.submitPaymentRequest(paymentId, amount, createdAt, deadline)
+        if (now() + queueProcessingTime + averageProcessingTime >= deadline) {
+             logger.warn("Payment $paymentId for order $orderId not created (too many requests)")
+             throw ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many requests. Please try again later."
+            )
         }
+
+        val task = PaymentTask(orderId, amount, paymentId, deadline, createdAt)
+        logger.trace("Create task for payment $paymentId (orderId=$orderId)")
+        paymentTaskQueue.put(task)
+
         return createdAt
     }
+
+    private fun now() = System.currentTimeMillis()
+
+    private data class PaymentTask(
+        val orderId: UUID,
+        val amount: Int,
+        val paymentId: UUID,
+        val deadline: Long,
+        val createdAt: Long
+    )
+
 }
