@@ -55,6 +55,13 @@ class PaymentExternalSystemAdapterImpl(
 
     private val paymentProcessingTimer: Timer = Timer.builder("payment.processing")
         .description("Payment system response timings")
+        .publishPercentileHistogram()
+        .tags("serviceName", serviceName, "accountName", accountName)
+        .register(meterRegistry)
+
+    private val paymentQueueTimer: Timer = Timer.builder("payment.queue")
+        .description("Time spent in queue")
+        .publishPercentileHistogram()
         .tags("serviceName", serviceName, "accountName", accountName)
         .register(meterRegistry)
 
@@ -71,6 +78,7 @@ class PaymentExternalSystemAdapterImpl(
 
 
     override fun performPaymentAsync(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
+        val veryStart = now()
         logger.warn("[$accountName] Submitting payment request for payment $paymentId")
         paymentRequestsCounter.increment()
 
@@ -93,6 +101,8 @@ class PaymentExternalSystemAdapterImpl(
             }.build()
 
             rateLimiter.tickBlocking()
+
+            paymentQueueTimer.record(now() - veryStart, TimeUnit.MILLISECONDS)
 
             if ((now() + requestAverageProcessingTime.toMillis() * 2) > deadline) {
                 logger.warn("[$accountName] Payment expired for txId: $transactionId, payment: $paymentId")
