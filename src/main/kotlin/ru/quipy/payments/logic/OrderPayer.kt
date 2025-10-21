@@ -72,7 +72,6 @@ class OrderPayer {
             )
         }
         logger.trace("Payment ${createdEvent.paymentId} for order ${task.orderId} created.")
-
         paymentService.submitPaymentRequest(task.paymentId, task.amount, task.createdAt, task.deadline)
     }
 
