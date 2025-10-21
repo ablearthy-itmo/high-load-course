@@ -80,7 +80,7 @@ class OrderPayer(private val meterRegistry: MeterRegistry) {
 
     fun processPayment(orderId: UUID, amount: Int, paymentId: UUID, deadline: Long): Long {
         val createdAt = System.currentTimeMillis()
-        val averageProcessingTime = processingTimeCounter.getAverage()
+        val averageProcessingTime = processingTimeCounter.getAverage() * 1.6
         logger.info("Current averageProcessingTime is ${averageProcessingTime}ms, queueSize is ${paymentTaskQueue.size}")
         val queueProcessingTime = (paymentTaskQueue.size + workersCount + 1) * averageProcessingTime / workersCount
 
