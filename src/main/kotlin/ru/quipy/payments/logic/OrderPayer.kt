@@ -16,8 +16,11 @@ import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import ru.quipy.common.utils.ProcessingTimeCounter
 
+import io.micrometer.core.instrument.Counter
+import io.micrometer.core.instrument.MeterRegistry
+
 @Service
-class OrderPayer {
+class OrderPayer(private val meterRegistry: MeterRegistry) {
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(OrderPayer::class.java)
@@ -33,7 +36,7 @@ class OrderPayer {
 
     private val processingTimeCounter = ProcessingTimeCounter()
 
-    private val workersCount = 16
+    private val workersCount = 11
 
     private val paymentExecutor = ThreadPoolExecutor(
         workersCount,
@@ -78,11 +81,12 @@ class OrderPayer {
     fun processPayment(orderId: UUID, amount: Int, paymentId: UUID, deadline: Long): Long {
         val createdAt = System.currentTimeMillis()
         val averageProcessingTime = processingTimeCounter.getAverage()
-        logger.info("Current averageProcessingTime is ${averageProcessingTime}ms")
-        val queueProcessingTime = (paymentTaskQueue.size + workersCount) * averageProcessingTime / workersCount
+        logger.info("Current averageProcessingTime is ${averageProcessingTime}ms, queueSize is ${paymentTaskQueue.size}")
+        val queueProcessingTime = (paymentTaskQueue.size + workersCount + 1) * averageProcessingTime / workersCount
 
-        if (now() + queueProcessingTime + averageProcessingTime >= deadline) {
+        if (paymentTaskQueue.size > 0 && now() + queueProcessingTime > deadline) {
              logger.warn("Payment $paymentId for order $orderId not created (too many requests)")
+             getResponsesCounter("429").increment()
              throw ResponseStatusException(
                 HttpStatus.TOO_MANY_REQUESTS,
                 "Too many requests. Please try again later."
@@ -91,6 +95,7 @@ class OrderPayer {
 
         val task = PaymentTask(orderId, amount, paymentId, deadline, createdAt)
         logger.trace("Create task for payment $paymentId (orderId=$orderId)")
+        getResponsesCounter("200").increment()
         paymentTaskQueue.put(task)
 
         return createdAt
@@ -105,5 +110,12 @@ class OrderPayer {
         val deadline: Long,
         val createdAt: Long
     )
+
+    private fun getResponsesCounter(status: String): Counter {
+        return Counter.builder("payorder.responses")
+            .description("Total number of payorder responses")
+            .tags("status", status)
+            .register(meterRegistry)
+    }
 
 }

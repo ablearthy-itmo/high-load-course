@@ -102,14 +102,15 @@ class PaymentExternalSystemAdapterImpl(
             }.build()
 
 
-            if ((now() + requestAverageProcessingTime.toMillis() + 4000) > deadline) {
-                logger.warn("[$accountName] Payment expired for txId: $transactionId, payment: $paymentId")
-                getPaymentResponsesCounter("theoretical_expired").increment()
-                paymentESService.update(paymentId) {
-                    it.logProcessing(false, now(), transactionId, reason = "Payment expired.")
-                }
-                return
-            }
+            // TODO isagila
+            // if ((now() + requestAverageProcessingTime.toMillis() + 4000) > deadline) {
+            //     logger.warn("[$accountName] Payment expired for txId: $transactionId, payment: $paymentId")
+            //     getPaymentResponsesCounter("theoretical_expired").increment()
+            //     paymentESService.update(paymentId) {
+            //         it.logProcessing(false, now(), transactionId, reason = "Payment expired.")
+            //     }
+            //     return
+            // }
 
             val startedAt = now()
             client.newCall(request).execute().use { response ->
