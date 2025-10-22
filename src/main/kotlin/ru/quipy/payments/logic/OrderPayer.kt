@@ -80,11 +80,11 @@ class OrderPayer(private val meterRegistry: MeterRegistry) {
 
     fun processPayment(orderId: UUID, amount: Int, paymentId: UUID, deadline: Long): Long {
         val createdAt = System.currentTimeMillis()
-        val averageProcessingTime = processingTimeCounter.getAverage() * 1.6
+        val averageProcessingTime = processingTimeCounter.getAverage()
         logger.info("Current averageProcessingTime is ${averageProcessingTime}ms, queueSize is ${paymentTaskQueue.size}")
-        val queueProcessingTime = (paymentTaskQueue.size + workersCount + 1) * averageProcessingTime / workersCount
+        val queueProcessingTime = (paymentTaskQueue.size + workersCount) * averageProcessingTime / workersCount
 
-        if (paymentTaskQueue.size > 0 && now() + queueProcessingTime > deadline) {
+        if (now() + queueProcessingTime > deadline) {
              logger.warn("Payment $paymentId for order $orderId not created (too many requests)")
              getResponsesCounter("429").increment()
              throw ResponseStatusException(
