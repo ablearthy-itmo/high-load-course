@@ -15,6 +15,7 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import ru.quipy.common.utils.ProcessingTimeCounter
+import ru.quipy.common.utils.TooManyRequestsException
 
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
@@ -81,16 +82,20 @@ class OrderPayer(private val meterRegistry: MeterRegistry) {
     fun processPayment(orderId: UUID, amount: Int, paymentId: UUID, deadline: Long): Long {
         val createdAt = System.currentTimeMillis()
         val averageProcessingTime = processingTimeCounter.getAverage()
+        // TODO isagila
+        val maxProcessingTime = averageProcessingTime * 1.5
         logger.info("Current averageProcessingTime is ${averageProcessingTime}ms, queueSize is ${paymentTaskQueue.size}")
-        val queueProcessingTime = (paymentTaskQueue.size + workersCount) * averageProcessingTime / workersCount
+        val queueProcessingTime = (paymentTaskQueue.size + workersCount) * maxProcessingTime / workersCount
 
         if (now() + queueProcessingTime > deadline) {
-             logger.warn("Payment $paymentId for order $orderId not created (too many requests)")
-             getResponsesCounter("429").increment()
-             throw ResponseStatusException(
+            logger.warn("Payment $paymentId for order $orderId not created (too many requests)")
+            getResponsesCounter("429").increment()
+
+            throw ResponseStatusException(
                 HttpStatus.TOO_MANY_REQUESTS,
                 "Too many requests. Please try again later."
             )
+            // throw TooManyRequestsException(averageProcessingTime);
         }
 
         val task = PaymentTask(orderId, amount, paymentId, deadline, createdAt)
