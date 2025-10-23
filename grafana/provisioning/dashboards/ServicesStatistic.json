@@ -947,7 +947,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 58
+            "y": 114
           },
           "id": 25,
           "options": {
@@ -1094,7 +1094,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 67
+            "y": 123
           },
           "id": 7,
           "options": {
@@ -1230,7 +1230,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 67
+            "y": 123
           },
           "id": 8,
           "options": {
@@ -1329,7 +1329,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 75
+            "y": 131
           },
           "id": 30,
           "options": {
@@ -1491,7 +1491,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 68
+            "y": 124
           },
           "id": 3,
           "options": {
@@ -1628,7 +1628,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 68
+            "y": 124
           },
           "id": 14,
           "options": {
@@ -1767,7 +1767,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 76
+            "y": 132
           },
           "id": 32,
           "options": {
@@ -1906,7 +1906,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 76
+            "y": 132
           },
           "id": 34,
           "options": {
@@ -2045,7 +2045,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 84
+            "y": 140
           },
           "id": 43,
           "options": {
@@ -2162,7 +2162,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 69
+            "y": 125
           },
           "id": 19,
           "options": {
@@ -2262,7 +2262,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 69
+            "y": 125
           },
           "id": 22,
           "options": {
@@ -2361,7 +2361,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 77
+            "y": 133
           },
           "id": 100,
           "options": {
@@ -2470,7 +2470,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 1230
+            "y": 1286
           },
           "id": 40,
           "options": {
@@ -2563,7 +2563,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 1230
+            "y": 1286
           },
           "id": 39,
           "options": {
@@ -2661,7 +2661,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 1270
+            "y": 1326
           },
           "id": 95,
           "options": {
@@ -2770,7 +2770,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 1270
+            "y": 1326
           },
           "id": 42,
           "options": {
@@ -2863,7 +2863,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 1278
+            "y": 1334
           },
           "id": 41,
           "options": {
@@ -2958,7 +2958,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": 0
                   },
                   {
                     "color": "red",
@@ -2973,7 +2974,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 1231
+            "y": 31
           },
           "id": 98,
           "maxDataPoints": 100,
@@ -2987,11 +2988,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             }
           },
-          "pluginVersion": "11.4.0",
+          "pluginVersion": "12.1.1",
           "targets": [
             {
               "datasource": {
@@ -3059,7 +3061,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": 0
                   },
                   {
                     "color": "red",
@@ -3074,7 +3077,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 1231
+            "y": 31
           },
           "id": 99,
           "maxDataPoints": 100,
@@ -3088,11 +3091,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             }
           },
-          "pluginVersion": "11.4.0",
+          "pluginVersion": "12.1.1",
           "targets": [
             {
               "datasource": {
@@ -3161,7 +3165,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": 0
                   },
                   {
                     "color": "red",
@@ -3177,7 +3182,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 1247
+            "y": 39
           },
           "id": 24,
           "options": {
@@ -3190,11 +3195,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "none"
             }
           },
-          "pluginVersion": "11.4.0",
+          "pluginVersion": "12.1.1",
           "targets": [
             {
               "datasource": {
@@ -3299,7 +3305,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": 0
                   },
                   {
                     "color": "red",
@@ -3315,7 +3322,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 1255
+            "y": 47
           },
           "id": 4,
           "options": {
@@ -3326,11 +3333,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "none"
             }
           },
-          "pluginVersion": "11.4.0",
+          "pluginVersion": "12.1.1",
           "targets": [
             {
               "datasource": {
@@ -3398,7 +3406,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": 0
                   },
                   {
                     "color": "red",
@@ -3414,7 +3423,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 1255
+            "y": 47
           },
           "id": 96,
           "options": {
@@ -3427,11 +3436,12 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "multi",
               "sort": "none"
             }
           },
-          "pluginVersion": "11.4.0",
+          "pluginVersion": "12.1.1",
           "targets": [
             {
               "datasource": {
@@ -4067,6 +4077,99 @@
                     "value": 80
                   }
                 ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 48
+          },
+          "id": 109,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "12.1.1",
+          "targets": [
+            {
+              "editorMode": "code",
+              "expr": "payment_task_queue_size",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Payment task Queue size",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
               },
               "unit": "s"
             },
@@ -4229,5 +4332,5 @@
   "timezone": "",
   "title": "Services statistic",
   "uid": "KVr-Vmpnz",
-  "version": 12
+  "version": 14
 }
