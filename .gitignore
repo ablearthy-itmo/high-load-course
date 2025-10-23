@@ -37,3 +37,6 @@ build/
 ### misc ###
 prometheus/data/
 grafana/data/
+
+
+.myenv

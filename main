@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Script name for help messages
+SCRIPT_NAME=$(basename "$0")
+
+# Function to display help
+show_help() {
+    cat << EOF
+Usage: $SCRIPT_NAME <command> [arguments] [options]
+
+Commands:
+    build                                 Build the Docker image
+    build-mvn                             Build the project using Maven
+    run <test-suite>                      Run the application for specified test-suite
+    build-run <test-suite>                Build and then run the application for specified test-suite
+    start-test <test-suite> [-p <branch>] Start tests with the specified test suite, use -p for prem
+    stop-test [-p]                        Stop the test execution, use -p for prem
+    help                                  Show this help message
+
+Examples:
+    $SCRIPT_NAME build
+    $SCRIPT_NAME build-mvn
+    $SCRIPT_NAME run "acc-5,acc-23"
+    $SCRIPT_NAME build-run "ts-5"
+    $SCRIPT_NAME start-test "ts-5" -p
+    $SCRIPT_NAME stop
+EOF
+}
+
+build() {
+    echo "Building project with Docker..."
+    sudo docker build -t localhost/high-load-course:latest .
+}
+
+build_mvn() {
+    echo "Building project with mvn..."
+    mvn package
+}
+
+_get_test_suite() {
+    local test_suite="$1"
+
+    cat test-suites.json | jq -r --arg TS "$test_suite" '.[$TS] | if . == null then error("Unknown test suite \($TS)") else . end'
+}
+
+# Function to run the application
+run_app() {
+    local test_suite_key="$1"
+    local test_suite="$(_get_test_suite "$test_suite_key")"
+    local accounts="$(echo "$test_suite" | jq -r '.accounts')"
+
+    echo "Running application for test suite $test_suite_key with account = $accounts"
+    sudo docker run --env-file .myenv -e PAYMENT_ACCOUNTS="$accounts" --network=host --rm -it localhost/high-load-course:latest
+}
+
+# Function to build and run
+build_run() {
+    local accounts="$1"
+    echo "Building and running with accounts: $accounts"
+    build
+    run_app "$accounts"
+}
+
+# Function to start tests
+start_test() {
+    local test_suite_key="$1"
+    local prem_branch=""
+    local test_suite="$(_get_test_suite "$test_suite_key")"
+    local payload=""
+    local host=""
+    
+    source .myenv
+    # Check for -p flag
+    if [ "$2" = "-p" ]; then
+        prem_branch="$3"
+        host="http://77.234.215.138:34321/run"
+        payload="$(echo "$test_suite" | jq -r --arg TOKEN "$PAYMENT_TOKEN" --arg SVC "$PAYMENT_SERVICE_NAME" --arg BRANCH "$prem_branch" '. + { serviceName: $SVC, token: $TOKEN, branch: $BRANCH, onPremises: true }')"
+        echo "Starting test $test_suite_key on-prem from branch: $prem_branch"
+    else
+        host="http://127.0.0.1:1234/test/run"
+        payload="$(echo "$test_suite" | jq -r --arg TOKEN "$PAYMENT_TOKEN" --arg SVC "$PAYMENT_SERVICE_NAME" 'del(.accounts) + { serviceName: $SVC, token: $TOKEN }')"
+        echo "Starting test $test_suite_key locally with payload $payload"
+    fi
+
+    curl -v -X POST "$host" -H "Content-Type: application/json" -d "$payload"
+    
+}
+
+stop_test() {
+    echo "Stopping test..."
+    source .myenv
+    if [ "$1" = "-p" ]; then
+        curl -v -X POST "http://77.234.215.138:31234/test/stop/$PAYMENT_SERVICE_NAME"
+    else
+        curl -v -X POST "http://127.0.0.1:1234/test/stop/$PAYMENT_SERVICE_NAME"
+    fi
+}
+
+# Main script logic
+case "${1:-help}" in
+    "build")
+        build
+        ;;
+    "build-mvn")
+        build_mvn
+        ;;
+    "run")
+        if [ -z "$2" ]; then
+            echo "Error: 'run' command requires a test suite."
+            show_help
+            exit 1
+        fi
+        run_app "$2"
+        ;;
+    "build-run")
+        if [ -z "$2" ]; then
+            echo "Error: 'build-run' command requires a test-suite."
+            show_help
+            exit 1
+        fi
+        build_run "$2"
+        ;;
+    "start-test")
+        if [ -z "$2" ]; then
+            echo "Error: 'start-test' command requires a test-suite."
+            show_help
+            exit 1
+        fi
+        start_test "$2" "$3" "$4"
+        ;;
+    "stop-test")
+        stop_test "$2"
+        ;;
+    "help"|*)
+        show_help
+        ;;
+esac

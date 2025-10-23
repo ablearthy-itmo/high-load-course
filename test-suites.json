@@ -1,0 +1,22 @@
+{
+    "ts-5-1": {
+        "accounts": "acc-23",
+        "ratePerSecond": 15,
+        "testCount": 3000,
+        "processingTimeMillis": 2500
+    },
+    "ts-5-2": {
+        "accounts": "acc-23",
+        "ratePerSecond": 11,
+        "testCount": 2200,
+        "processingTimeMillis": 13000,
+        "profile": "s_0.7_60"
+    },
+    "ts-5-3": {
+        "accounts": "acc-23",
+        "ratePerSecond": 3,
+        "testCount": 1050,
+        "processingTimeMillis": 26000,
+        "runits": 90
+    }
+}
