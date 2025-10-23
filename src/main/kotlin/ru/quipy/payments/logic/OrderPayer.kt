@@ -19,9 +19,10 @@ import ru.quipy.common.utils.TooManyRequestsException
 
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Tags
 
 @Service
-class OrderPayer(private val meterRegistry: MeterRegistry) {
+class OrderPayer(private val meterRegistry: MeterRegistry, private val paymentAccounts: List<PaymentExternalSystemAdapter>) {
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(OrderPayer::class.java)
@@ -33,7 +34,9 @@ class OrderPayer(private val meterRegistry: MeterRegistry) {
     @Autowired
     private lateinit var paymentService: PaymentService
 
-    private val paymentTaskQueue = LinkedBlockingQueue<PaymentTask>()
+    private val paymentTaskQueue = meterRegistry.gaugeCollectionSize("payment_task.queue_size", Tags.empty(), LinkedBlockingQueue<PaymentTask>())!!
+
+    private val additionalProcessingTime = paymentAccounts[0].getAverageProcessingTime() * 0.8
 
     private val processingTimeCounter = ProcessingTimeCounter()
 
@@ -82,25 +85,22 @@ class OrderPayer(private val meterRegistry: MeterRegistry) {
     fun processPayment(orderId: UUID, amount: Int, paymentId: UUID, deadline: Long): Long {
         val createdAt = System.currentTimeMillis()
         val averageProcessingTime = processingTimeCounter.getAverage()
-        // TODO isagila
-        val maxProcessingTime = averageProcessingTime * 1.5
+        val maxProcessingTime = averageProcessingTime + additionalProcessingTime
+
         logger.info("Current averageProcessingTime is ${averageProcessingTime}ms, queueSize is ${paymentTaskQueue.size}")
         val queueProcessingTime = (paymentTaskQueue.size + workersCount) * maxProcessingTime / workersCount
 
         if (now() + queueProcessingTime > deadline) {
             logger.warn("Payment $paymentId for order $orderId not created (too many requests)")
-            getResponsesCounter("429").increment()
 
             throw ResponseStatusException(
                 HttpStatus.TOO_MANY_REQUESTS,
                 "Too many requests. Please try again later."
             )
-            // throw TooManyRequestsException(averageProcessingTime);
         }
 
         val task = PaymentTask(orderId, amount, paymentId, deadline, createdAt)
         logger.trace("Create task for payment $paymentId (orderId=$orderId)")
-        getResponsesCounter("200").increment()
         paymentTaskQueue.put(task)
 
         return createdAt
@@ -115,12 +115,5 @@ class OrderPayer(private val meterRegistry: MeterRegistry) {
         val deadline: Long,
         val createdAt: Long
     )
-
-    private fun getResponsesCounter(status: String): Counter {
-        return Counter.builder("payorder.responses")
-            .description("Total number of payorder responses")
-            .tags("status", status)
-            .register(meterRegistry)
-    }
 
 }
