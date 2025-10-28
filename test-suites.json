@@ -1,7 +1,7 @@
 {
     "ts-5-1": {
         "accounts": "acc-23",
-        "ratePerSecond": 15,
+        "ratePerSecond": 11,
         "testCount": 3000,
         "processingTimeMillis": 2500
     },
