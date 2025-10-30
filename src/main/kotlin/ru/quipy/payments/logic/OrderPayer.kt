@@ -18,6 +18,7 @@ import ru.quipy.common.utils.ProcessingTimeCounter
 import ru.quipy.common.utils.TooManyRequestsException
 
 import io.micrometer.core.instrument.Counter
+import io.micrometer.core.instrument.Timer
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tags
 
@@ -36,11 +37,21 @@ class OrderPayer(private val meterRegistry: MeterRegistry, private val paymentAc
 
     private val paymentTaskQueue = meterRegistry.gaugeCollectionSize("payment_task.queue_size", Tags.empty(), LinkedBlockingQueue<PaymentTask>())!!
 
-    private val additionalProcessingTime = paymentAccounts[0].getAverageProcessingTime() * 0.8
+    private val paymentAllTimer: Timer = Timer.builder("payment.all")
+        .description("All time to process payment")
+        .publishPercentileHistogram()
+        .register(meterRegistry)
+
+    private val paymentTaskTimer: Timer = Timer.builder("payment.task")
+        .description("Time to process one payment task")
+        .publishPercentileHistogram()
+        .register(meterRegistry)
+
+    private val additionalProcessingTime = paymentAccounts[0].getAverageProcessingTime()
 
     private val processingTimeCounter = ProcessingTimeCounter()
 
-    private val workersCount = 11
+    private val workersCount = 16
 
     private val paymentExecutor = ThreadPoolExecutor(
         workersCount,
@@ -58,7 +69,10 @@ class OrderPayer(private val meterRegistry: MeterRegistry, private val paymentAc
                         val task = paymentTaskQueue.take()
                         val taskStartedAt = now()
                         processPaymentTask(task)
-                        processingTimeCounter.record(now() - taskStartedAt)
+                        val taskFinishedAt = now()
+                        processingTimeCounter.record(taskFinishedAt - taskStartedAt)
+                        paymentTaskTimer.record(taskFinishedAt - taskStartedAt, TimeUnit.MILLISECONDS)
+                        paymentAllTimer.record(taskFinishedAt - task.createdAt, TimeUnit.MILLISECONDS)
                     } catch (e: InterruptedException) {
                         Thread.currentThread().interrupt()
                         break

@@ -15,6 +15,7 @@ import java.net.SocketTimeoutException
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.random.Random
 
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Timer
@@ -35,6 +36,8 @@ class PaymentExternalSystemAdapterImpl(
 
         val emptyBody = RequestBody.create(null, ByteArray(0))
         val mapper = ObjectMapper().registerKotlinModule()
+
+        private const val RETRY_DELAY_MS = 100
     }
 
     private val serviceName = properties.serviceName
@@ -82,12 +85,41 @@ class PaymentExternalSystemAdapterImpl(
             .register(meterRegistry)
     }
 
+    private fun getAttemptsCounter(attempt: Int): Counter {
+        return Counter.builder("payment.attempt")
+            .description("Count of request attempts")
+            .tags(
+                "serviceName", serviceName,
+                "accountName", accountName,
+                "attempt", attempt.toString()
+            )
+            .register(meterRegistry)
+    }
+
     override fun getAverageProcessingTime(): Long {
         return properties.averageProcessingTime.toMillis()
     }
 
-
     override fun performPaymentAsync(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
+        var attempt = 1
+        while (true) {
+            if (now() + getAverageProcessingTime() > deadline) {
+                break
+            }
+
+            getAttemptsCounter(attempt).increment()
+            val isSuccess = performPaymentAsyncStep(paymentId, amount, paymentStartedAt, deadline)
+            if (isSuccess) {
+                break
+            }
+            attempt += 1
+
+            val jitter = Random.Default.nextInt(from = -20, until = 20).toDouble() / 100.0
+            Thread.sleep((RETRY_DELAY_MS * (1.0 + jitter)).toLong())
+        }
+    }
+
+    fun performPaymentAsyncStep(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long): Boolean {
         val enteredPaymentAt = now()
         logger.warn("[$accountName] Submitting payment request for payment $paymentId")
         paymentRequestsCounter.increment()
@@ -124,7 +156,7 @@ class PaymentExternalSystemAdapterImpl(
                     mapper.readValue(response.body?.string(), ExternalSysResponse::class.java)
                 } catch (e: Exception) {
                     logger.error("[$accountName] [ERROR] Payment processed for txId: $transactionId, payment: $paymentId, result code: ${response.code}, reason: ${response.body?.string()}")
-                    ExternalSysResponse(transactionId.toString(), paymentId.toString(),false, e.message)
+                    ExternalSysResponse(transactionId.toString(), paymentId.toString(), false, e.message)
                 }
 
                 logger.warn("[$accountName] Payment processed for txId: $transactionId, payment: $paymentId, succeeded: ${body.result}, message: ${body.message}")
@@ -138,6 +170,7 @@ class PaymentExternalSystemAdapterImpl(
                 paymentESService.update(paymentId) {
                     it.logProcessing(body.result, now(), transactionId, reason = body.message)
                 }
+                return body.result
             }
         } catch (e: Exception) {
             when (e) {
@@ -157,6 +190,7 @@ class PaymentExternalSystemAdapterImpl(
                 }
             }
             getPaymentResponsesCounter("exception_error").increment()
+            return false
         } finally {
             ongoingWindow.release()
             val finishedPaymentAt = now()
