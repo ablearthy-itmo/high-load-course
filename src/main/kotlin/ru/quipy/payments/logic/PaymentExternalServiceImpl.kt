@@ -15,7 +15,6 @@ import java.net.SocketTimeoutException
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.TimeUnit
-import kotlin.random.Random
 
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Timer
@@ -36,8 +35,6 @@ class PaymentExternalSystemAdapterImpl(
 
         val emptyBody = RequestBody.create(null, ByteArray(0))
         val mapper = ObjectMapper().registerKotlinModule()
-
-        private const val RETRY_DELAY_MS = 100
     }
 
     private val serviceName = properties.serviceName
@@ -102,20 +99,13 @@ class PaymentExternalSystemAdapterImpl(
 
     override fun performPaymentAsync(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
         var attempt = 1
-        while (true) {
-            if (now() + getAverageProcessingTime() > deadline) {
-                break
-            }
-
+        while (attempt <= 3 && now() + getAverageProcessingTime() * 1.9 > deadline) {
             getAttemptsCounter(attempt).increment()
             val isSuccess = performPaymentAsyncStep(paymentId, amount, paymentStartedAt, deadline)
             if (isSuccess) {
                 break
             }
             attempt += 1
-
-            val jitter = Random.Default.nextInt(from = -20, until = 20).toDouble() / 100.0
-            Thread.sleep((RETRY_DELAY_MS * (1.0 + jitter)).toLong())
         }
     }
 
