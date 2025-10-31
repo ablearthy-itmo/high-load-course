@@ -51,7 +51,11 @@ class PaymentExternalSystemAdapterImpl(
         val mapper = ObjectMapper().registerKotlinModule()
     }
 
+    // config
+    private val maxAttempts = 3
     private val acceptableRisk = 0.5
+    // end config
+
     private val riskCoeff = 2 * (1.0 - acceptableRisk)
 
     private val taskQueue = PriorityBlockingQueue<Task>(10_000, Comparator<Task> { t1, t2 ->
@@ -115,13 +119,14 @@ class PaymentExternalSystemAdapterImpl(
         .tags("serviceName", serviceName, "accountName", accountName)
         .register(meterRegistry)
 
-    private fun getPaymentResponsesCounter(status: String): Counter {
+    private fun getPaymentResponsesCounter(status: String, attempt: Long): Counter {
         return Counter.builder("payment.responses")
             .description("Total number of payment responses received")
             .tags(
                 "serviceName", serviceName,
                 "accountName", accountName,
-                "status", status
+                "status", status,
+                "attempt", attempt.toString()
             )
             .register(meterRegistry)
     }
@@ -135,7 +140,6 @@ class PaymentExternalSystemAdapterImpl(
     }
 
     override fun performPaymentAsync(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
-
         incomingLock.lock()
         try {
             val iw = inProgressOrWaitingRequestsCount.get()
@@ -148,13 +152,20 @@ class PaymentExternalSystemAdapterImpl(
             if (estimatedProcessingTime > deadline - paymentStartedAt) {
                 throw TooManyRequestsException(0)
             }
-            
-            waitingOrInProcessSummary.record(inProgressOrWaitingRequestsCount.incrementAndGet().toDouble())
+
             val transactionId = UUID.randomUUID()
-            taskQueue.put(Task(paymentId, transactionId, amount, paymentStartedAt, deadline))
+            val task = Task(paymentId, transactionId, amount, paymentStartedAt, deadline)
+
+            performTaskAsync(task)
         } finally {
             incomingLock.unlock()
         }
+    }
+
+    private fun performTaskAsync(task: Task) {
+        taskQueue.put(task)
+
+        waitingOrInProcessSummary.record(inProgressOrWaitingRequestsCount.incrementAndGet().toDouble())
         backgroundScope.scope.launch {
             doAsync()
             inProgressOrWaitingRequestsCount.getAndDecrement()
@@ -165,10 +176,10 @@ class PaymentExternalSystemAdapterImpl(
     suspend fun doAsync() {
         paymentRequestsCounter.increment()
 
-        // ongoingWindow.withPermit {
+        ongoingWindow.withPermit {
             // TODO: rate limiter
             val s1 = now()
-            while (!rateLimiter.tick()) { delay(10L) }
+            rateLimiter.tickCoro()
             getPaymentPerfCounter("rateLimiter").record(now() - s1, TimeUnit.MILLISECONDS)
             paymentStartedCounter.increment()
 
@@ -192,20 +203,15 @@ class PaymentExternalSystemAdapterImpl(
             val success = doRequestAsync(task)
             if (!success && task.attempt < 3 && now() + riskCoeff * requestAverageProcessingTime.toMillis() <= task.deadline) {
                 logger.warn("Retrying payment ${task.paymentId}, attempt = ${task.attempt + 1}, because it failed")
-                taskQueue.put(task.copy(attempt = task.attempt + 1))
+                val newTask = task.copy(attempt = task.attempt + 1)
 
-                backgroundScope.scope.launch {
-                    inProgressOrWaitingRequestsCount.incrementAndGet()
-                    doAsync()
-                    inProgressOrWaitingRequestsCount.getAndDecrement()
-                    inProgressRequestsCount.getAndDecrement()
-                }
+                performTaskAsync(newTask)
             }
 
             val finishedPaymentAt = now()
             paymentProcessingTimer.record(finishedPaymentAt - task.paymentStartedAt, TimeUnit.MILLISECONDS)
             logger.info("Payment ${task.paymentId} processed in ${finishedPaymentAt - task.paymentStartedAt}ms, time to deadline ${task.deadline - finishedPaymentAt}ms")
-        // } // end of ongoingWindow
+        } // end of ongoingWindow
     }
 
     private suspend fun doRequestAsync(task: Task): Boolean {
@@ -228,7 +234,8 @@ class PaymentExternalSystemAdapterImpl(
                 ExternalSysResponse(task.transactionId.toString(), task.paymentId.toString(), false, e.message)
                 return false
             }
-            getPaymentResponsesCounter(if (body.result) "success" else "error").increment()
+            val status = if (body.result) "success" else "error"
+            getPaymentResponsesCounter(status, task.attempt).increment()
             return body.result
         } catch (e: Exception) {
             when (e) {
@@ -251,7 +258,7 @@ class PaymentExternalSystemAdapterImpl(
                     }
                 }
             }
-            getPaymentResponsesCounter("exception_error").increment()
+            getPaymentResponsesCounter("exception_error", task.attempt).increment()
             return false
         }
     }
