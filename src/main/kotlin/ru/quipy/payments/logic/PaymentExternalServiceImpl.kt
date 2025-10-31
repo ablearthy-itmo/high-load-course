@@ -30,7 +30,7 @@ import io.micrometer.core.instrument.DistributionSummary
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantLock
 import ru.quipy.common.utils.TooManyRequestsException
-import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.PriorityBlockingQueue
 
 
 
@@ -52,8 +52,11 @@ class PaymentExternalSystemAdapterImpl(
     }
 
     private val acceptableRisk = 0.5
+    private val riskCoeff = 2 * (1.0 - acceptableRisk)
 
-    private val taskQueue = LinkedBlockingQueue<Task>(10_000)
+    private val taskQueue = PriorityBlockingQueue<Task>(10_000, Comparator<Task> { t1, t2 ->
+        t1.paymentStartedAt.compareTo(t2.paymentStartedAt)
+    })
 
     private val httpDispatcher = Dispatchers.IO.limitedParallelism(32)
     private val esDispatcher = Dispatchers.IO.limitedParallelism(4)
@@ -140,16 +143,15 @@ class PaymentExternalSystemAdapterImpl(
             val waiting = iw - i
 
             logger.warn("[$accountName] IW count $iw")
-            val coeff = 2 * (1.0 - acceptableRisk)
-            val estimatedProcessingTime = 1000.0 * iw / rateLimitPerSec + coeff * requestAverageProcessingTime.toMillis()
+            val estimatedProcessingTime = 1000.0 * iw / rateLimitPerSec + riskCoeff * requestAverageProcessingTime.toMillis()
 
             if (estimatedProcessingTime > deadline - paymentStartedAt) {
                 throw TooManyRequestsException(0)
             }
-
             
             waitingOrInProcessSummary.record(inProgressOrWaitingRequestsCount.incrementAndGet().toDouble())
-            taskQueue.put(Task(paymentId, amount, paymentStartedAt, deadline))
+            val transactionId = UUID.randomUUID()
+            taskQueue.put(Task(paymentId, transactionId, amount, paymentStartedAt, deadline))
         } finally {
             incomingLock.unlock()
         }
@@ -161,10 +163,7 @@ class PaymentExternalSystemAdapterImpl(
     }
 
     suspend fun doAsync() {
-        val enteredPaymentAt = now()
         paymentRequestsCounter.increment()
-
-        val transactionId = UUID.randomUUID()
 
         // ongoingWindow.withPermit {
             // TODO: rate limiter
@@ -174,88 +173,87 @@ class PaymentExternalSystemAdapterImpl(
             paymentStartedCounter.increment()
 
             val task = taskQueue.take()
-            val paymentId = task.paymentId
-            val amount = task.amount
-            val paymentStartedAt = task.paymentStartedAt
-            val deadline = task.deadline
 
-            logger.info("[$accountName] Submit: $paymentId , txId: $transactionId")
+            logger.info("[$accountName] Submit: ${task.paymentId} , txId: ${task.transactionId}")
 
             withContext(esDispatcher) {
                 // Вне зависимости от исхода оплаты важно отметить что она была отправлена.
                 // Это требуется сделать ВО ВСЕХ СЛУЧАЯХ, поскольку эта информация используется сервисом тестирования.
-                paymentESService.update(paymentId) {
-                    it.logSubmission(success = true, transactionId, now(), Duration.ofMillis(now() - paymentStartedAt))
+                paymentESService.update(task.paymentId) {
+                    it.logSubmission(success = true, task.transactionId, now(), Duration.ofMillis(now() - task.paymentStartedAt))
                 }
             }
-
-            val request = Request.Builder().run {
-                url("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=$transactionId&paymentId=$paymentId&amount=$amount")
-                post(emptyBody)
-            }.build()
 
             val startedAt = now()
-            paymentQueueTimer.record(startedAt - enteredPaymentAt, TimeUnit.MILLISECONDS)
+            paymentQueueTimer.record(startedAt - task.paymentStartedAt, TimeUnit.MILLISECONDS)
 
             inProgressRequestsCount.getAndIncrement()
-            try {
-                val response = client.newCall(request).executeAsync()
 
-                val rawBody = withContext(httpDispatcher) { response.body?.string() }
+            val success = doRequestAsync(task)
+            if (!success && task.attempt < 3 && now() + riskCoeff * requestAverageProcessingTime.toMillis() <= task.deadline) {
+                logger.warn("Retrying payment ${task.paymentId}, attempt = ${task.attempt + 1}, because it failed")
+                taskQueue.put(task.copy(attempt = task.attempt + 1))
 
-                val finishedAt = now()
-                paymentSystemProcessingTimer.record(finishedAt - startedAt, TimeUnit.MILLISECONDS)
-                logger.info("Request to payment system for payment $paymentId processed in ${finishedAt - enteredPaymentAt}ms")
-
-                val body = try {
-                    mapper.readValue(rawBody, ExternalSysResponse::class.java)
-                } catch (e: Exception) {
-                    logger.error("[$accountName] [ERROR] Payment processed for txId: $transactionId, payment: $paymentId, result code: ${response.code}, reason: $rawBody")
-                    ExternalSysResponse(transactionId.toString(), paymentId.toString(),false, e.message)
+                backgroundScope.scope.launch {
+                    inProgressOrWaitingRequestsCount.incrementAndGet()
+                    doAsync()
+                    inProgressOrWaitingRequestsCount.getAndDecrement()
+                    inProgressRequestsCount.getAndDecrement()
                 }
-
-                logger.warn("[$accountName] Payment processed for txId: $transactionId, payment: $paymentId, succeeded: ${body.result}, message: ${body.message}")
-                if (finishedAt > deadline) {
-                    getPaymentResponsesCounter("real_expired").increment()
-                } else {
-                    getPaymentResponsesCounter(if (body.result) "success" else "error").increment()
-                }
-                withContext(esDispatcher) {
-                    // Здесь мы обновляем состояние оплаты в зависимости от результата в базе данных оплат.
-                    // Это требуется сделать ВО ВСЕХ ИСХОДАХ (успешная оплата / неуспешная / ошибочная ситуация)
-                    paymentESService.update(paymentId) {
-                        it.logProcessing(body.result, now(), transactionId, reason = body.message)
-                    }
-                }
-
-            } catch (e: Exception) {
-                when (e) {
-                    is SocketTimeoutException -> {
-                        logger.error("[$accountName] Payment timeout for txId: $transactionId, payment: $paymentId", e)
-                        withContext(esDispatcher) {
-                            paymentESService.update(paymentId) {
-                                it.logProcessing(false, now(), transactionId, reason = "Request timeout.")
-                            }
-                        }
-                    }
-
-                    else -> {
-                        logger.error("[$accountName] Payment failed for txId: $transactionId, payment: $paymentId", e)
-
-                        withContext(esDispatcher) {
-                            paymentESService.update(paymentId) {
-                                it.logProcessing(false, now(), transactionId, reason = e.message)
-                            }
-                        }
-                    }
-                }
-                getPaymentResponsesCounter("exception_error").increment()
-            } finally {
-                val finishedPaymentAt = now()
-                paymentProcessingTimer.record(finishedPaymentAt - enteredPaymentAt, TimeUnit.MILLISECONDS)
-                logger.info("Payment $paymentId processed in ${finishedPaymentAt - enteredPaymentAt}ms, time to deadline ${deadline - finishedPaymentAt}ms")
             }
+
+            val finishedPaymentAt = now()
+            paymentProcessingTimer.record(finishedPaymentAt - task.paymentStartedAt, TimeUnit.MILLISECONDS)
+            logger.info("Payment ${task.paymentId} processed in ${finishedPaymentAt - task.paymentStartedAt}ms, time to deadline ${task.deadline - finishedPaymentAt}ms")
         // } // end of ongoingWindow
+    }
+
+    private suspend fun doRequestAsync(task: Task): Boolean {
+        try {
+            val startedAt = now()
+            val request = Request.Builder().run {
+                url("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}")
+                post(emptyBody)
+            }.build()
+            val response = client.newCall(request).executeAsync()
+            val rawBody = withContext(httpDispatcher) { response.body?.string() }
+            val finishedAt = now()
+            paymentSystemProcessingTimer.record(finishedAt - startedAt, TimeUnit.MILLISECONDS)
+            logger.info("Request to payment system for payment ${task.paymentId} processed in ${finishedAt - task.paymentStartedAt}ms")
+
+            val body = try {
+                mapper.readValue(rawBody, ExternalSysResponse::class.java)
+            } catch (e: Exception) {
+                logger.error("[$accountName] [ERROR] Payment processed for txId: ${task.transactionId}, payment: ${task.paymentId}, result code: ${response.code}, reason: $rawBody")
+                ExternalSysResponse(task.transactionId.toString(), task.paymentId.toString(), false, e.message)
+                return false
+            }
+            getPaymentResponsesCounter(if (body.result) "success" else "error").increment()
+            return body.result
+        } catch (e: Exception) {
+            when (e) {
+                is SocketTimeoutException -> {
+                    logger.error("[$accountName] Payment timeout for txId: ${task.transactionId}, payment: ${task.paymentId}", e)
+                    withContext(esDispatcher) {
+                        paymentESService.update(task.paymentId) {
+                            it.logProcessing(false, now(), task.transactionId, reason = "Request timeout.")
+                        }
+                    }
+                }
+
+                else -> {
+                    logger.error("[$accountName] Payment failed for txId: ${task.transactionId}, payment: ${task.paymentId}", e)
+
+                    withContext(esDispatcher) {
+                        paymentESService.update(task.paymentId) {
+                            it.logProcessing(false, now(), task.transactionId, reason = e.message)
+                        }
+                    }
+                }
+            }
+            getPaymentResponsesCounter("exception_error").increment()
+            return false
+        }
     }
 
     override fun price() = properties.price
@@ -264,7 +262,7 @@ class PaymentExternalSystemAdapterImpl(
 
     override fun name() = properties.accountName
 
-    private data class Task(val paymentId: UUID, val amount: Int, val paymentStartedAt: Long, val deadline: Long)
+    private data class Task(val paymentId: UUID, val transactionId: UUID, val amount: Int, val paymentStartedAt: Long, val deadline: Long, val attempt: Long = 0)
 
 }
 
