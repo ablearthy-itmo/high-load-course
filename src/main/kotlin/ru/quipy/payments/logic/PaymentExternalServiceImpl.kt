@@ -25,6 +25,11 @@ import kotlinx.coroutines.sync.*
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Timer
 import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.DistributionSummary
+
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.locks.ReentrantLock
+import ru.quipy.common.utils.TooManyRequestsException
 
 
 // Advice: always treat time as a Duration
@@ -53,8 +58,13 @@ class PaymentExternalSystemAdapterImpl(
     private val rateLimitPerSec = properties.rateLimitPerSec
     private val parallelRequests = properties.parallelRequests
 
-    // private val rateLimiter = SlidingWindowRateLimiter(1L, Duration.ofMillis(1000L / rateLimitPerSec))
-    private val rateLimiter = FixedWindowRateLimiter(rateLimitPerSec, 1000, TimeUnit.MILLISECONDS)
+    private val inProgressOrWaitingRequestsCount = AtomicInteger(0)
+    private val inProgressRequestsCount = AtomicInteger(0)
+
+    private val incomingLock = ReentrantLock()
+
+    private val rateLimiter = SlidingWindowRateLimiter(rateLimitPerSec.toLong(), Duration.ofMillis(1000L))
+    // private val rateLimiter = FixedWindowRateLimiter(rateLimitPerSec, 1000, TimeUnit.MILLISECONDS)
     private val ongoingWindow = Semaphore(parallelRequests)
 
     private val client = OkHttpClient.Builder()
@@ -64,10 +74,19 @@ class PaymentExternalSystemAdapterImpl(
         })
         .build()
 
+    private val waitingOrInProcessSummary = DistributionSummary.builder("payment.queue")
+        .publishPercentiles(0.25, 0.5, 0.75, 0.9, 0.95, 0.99)
+        .register(meterRegistry)  
+
     private val paymentRequestsCounter: Counter = Counter.builder("payment.requests")
         .description("Total number of payment requests received")
         .tags("serviceName", serviceName, "accountName", accountName)
         .register(meterRegistry)
+
+    private val paymentStartedCounter: Counter = Counter.builder("payment.started")
+        .description("Total number of payments started")
+        .tags("serviceName", serviceName, "accountName", accountName)
+        .register(meterRegistry)    
 
     private val paymentSystemProcessingTimer: Timer = Timer.builder("payment_system.processing")
         .description("Payment system response timings")
@@ -107,8 +126,29 @@ class PaymentExternalSystemAdapterImpl(
     }
 
     override fun performPaymentAsync(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
+
+        incomingLock.lock()
+        try {
+            val iw = inProgressOrWaitingRequestsCount.get()
+            val i = inProgressRequestsCount.get()
+            val waiting = iw - i
+
+            logger.warn("[$accountName] IW count $iw")
+            val estimatedProcessingTime = 1000.0 * iw / rateLimitPerSec + 1.0 * requestAverageProcessingTime.toMillis()
+
+            if (estimatedProcessingTime > deadline - paymentStartedAt) {
+                throw TooManyRequestsException(0)
+            }
+
+            
+            waitingOrInProcessSummary.record(inProgressOrWaitingRequestsCount.incrementAndGet().toDouble())
+        } finally {
+            incomingLock.unlock()
+        }
         backgroundScope.scope.launch {
             doAsync(paymentId, amount, paymentStartedAt, deadline)
+            inProgressOrWaitingRequestsCount.getAndDecrement()
+            inProgressRequestsCount.getAndDecrement()
         }
     }
 
@@ -134,7 +174,7 @@ class PaymentExternalSystemAdapterImpl(
             val s1 = now()
             while (!rateLimiter.tick()) { delay(10L) }
             getPaymentPerfCounter("rateLimiter").record(now() - s1, TimeUnit.MILLISECONDS)
-            
+            paymentStartedCounter.increment()
 
             val request = Request.Builder().run {
                 url("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=$transactionId&paymentId=$paymentId&amount=$amount")
@@ -144,6 +184,7 @@ class PaymentExternalSystemAdapterImpl(
             val startedAt = now()
             paymentQueueTimer.record(startedAt - enteredPaymentAt, TimeUnit.MILLISECONDS)
 
+            inProgressRequestsCount.getAndIncrement()
             try {
                 val response = client.newCall(request).executeAsync()
 
