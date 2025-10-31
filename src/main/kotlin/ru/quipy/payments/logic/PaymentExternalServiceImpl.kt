@@ -101,11 +101,13 @@ class PaymentExternalSystemAdapterImpl(
         .tags("serviceName", serviceName, "accountName", accountName)
         .register(meterRegistry)    
 
-    private val paymentSystemProcessingTimer: Timer = Timer.builder("payment_system.processing")
-        .description("Payment system response timings")
-        .publishPercentileHistogram()
-        .tags("serviceName", serviceName, "accountName", accountName)
-        .register(meterRegistry)
+    private fun getPaymentSystemProcessingTimer(status: String): Timer {
+        return Timer.builder("payment_system.processing")
+            .description("Payment system response timings")
+            .publishPercentileHistogram()
+            .tags("serviceName", serviceName, "accountName", accountName, "status", status)
+            .register(meterRegistry)
+    }
 
     private val paymentProcessingTimer: Timer = Timer.builder("payment.processing")
         .description("Payment processing timings")
@@ -215,8 +217,8 @@ class PaymentExternalSystemAdapterImpl(
     }
 
     private suspend fun doRequestAsync(task: Task): Boolean {
+        val startedAt = now()
         try {
-            val startedAt = now()
             val request = Request.Builder().run {
                 url("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}")
                 post(emptyBody)
@@ -224,8 +226,8 @@ class PaymentExternalSystemAdapterImpl(
             val response = client.newCall(request).executeAsync()
             val rawBody = withContext(httpDispatcher) { response.body?.string() }
             val finishedAt = now()
-            paymentSystemProcessingTimer.record(finishedAt - startedAt, TimeUnit.MILLISECONDS)
-            logger.info("Request to payment system for payment ${task.paymentId} processed in ${finishedAt - task.paymentStartedAt}ms")
+            
+            logger.info("Request to payment system for payment ${task.paymentId} processed in ${ - task.paymentStartedAt}ms")
 
             val body = try {
                 mapper.readValue(rawBody, ExternalSysResponse::class.java)
@@ -234,8 +236,12 @@ class PaymentExternalSystemAdapterImpl(
                 ExternalSysResponse(task.transactionId.toString(), task.paymentId.toString(), false, e.message)
                 return false
             }
+            
             val status = if (body.result) "success" else "error"
+
+            getPaymentSystemProcessingTimer(status).record(finishedAt - startedAt, TimeUnit.MILLISECONDS)
             getPaymentResponsesCounter(status, task.attempt).increment()
+
             return body.result
         } catch (e: Exception) {
             when (e) {
@@ -258,7 +264,10 @@ class PaymentExternalSystemAdapterImpl(
                     }
                 }
             }
+
+            getPaymentSystemProcessingTimer("exception_error").record(now() - startedAt, TimeUnit.MILLISECONDS)
             getPaymentResponsesCounter("exception_error", task.attempt).increment()
+
             return false
         }
     }
