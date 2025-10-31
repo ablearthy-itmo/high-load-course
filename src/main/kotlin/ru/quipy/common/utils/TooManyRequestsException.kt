@@ -10,9 +10,9 @@ class TooManyRequestsException(
     HttpStatus.TOO_MANY_REQUESTS,
     "Too many requests. Please try again later."
 ) {
-    override fun getResponseHeaders(): HttpHeaders {
+    /*override fun getResponseHeaders(): HttpHeaders {
         val headers = HttpHeaders()
         headers.set("Retry-After", retryAfterSeconds.toString())
         return headers
-    }
+    }*/
 }

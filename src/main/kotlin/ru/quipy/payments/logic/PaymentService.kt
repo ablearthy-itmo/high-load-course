@@ -23,8 +23,6 @@ interface PaymentExternalSystemAdapter {
 
     fun price(): Int
 
-    fun getAverageProcessingTime(): Long
-
     fun isEnabled(): Boolean
 }
 

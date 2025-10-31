@@ -39,6 +39,10 @@ class SlidingWindowRateLimiter(
         }
     }
 
+    suspend fun tickCoro() {
+        while (!tick()) { delay(10L) }
+    }
+
     data class Measure(
         val value: Long,
         val timestamp: Long

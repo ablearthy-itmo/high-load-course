@@ -52,14 +52,17 @@ run_app() {
     local accounts="$(echo "$test_suite" | jq -r '.accounts')"
 
     echo "Running application for test suite $test_suite_key with account = $accounts"
-    sudo docker run --env-file .myenv -e PAYMENT_ACCOUNTS="$accounts" --network=host --rm -it localhost/high-load-course:latest
+
+    env $(cat .myenv | xargs) PAYMENT_ACCOUNTS="$accounts" java -jar target/demo-0.0.1-SNAPSHOT.jar
+
+    # sudo docker run --env-file .myenv -e PAYMENT_ACCOUNTS="$accounts" --network=host --rm -it localhost/high-load-course:latest
 }
 
 # Function to build and run
 build_run() {
     local accounts="$1"
     echo "Building and running with accounts: $accounts"
-    build
+    build_mvn
     run_app "$accounts"
 }
 
