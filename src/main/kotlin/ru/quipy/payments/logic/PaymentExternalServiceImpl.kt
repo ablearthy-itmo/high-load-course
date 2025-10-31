@@ -99,7 +99,7 @@ class PaymentExternalSystemAdapterImpl(
 
     override fun performPaymentAsync(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
         var attempt = 1
-        while (attempt <= 3 && now() + getAverageProcessingTime() * 1.9 > deadline) {
+        while (attempt <= 3 && now() + getAverageProcessingTime() * 1.9 <= deadline) {
             getAttemptsCounter(attempt).increment()
             val isSuccess = performPaymentAsyncStep(paymentId, amount, paymentStartedAt, deadline)
             if (isSuccess) {
