@@ -30,6 +30,8 @@ import io.micrometer.core.instrument.DistributionSummary
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantLock
 import ru.quipy.common.utils.TooManyRequestsException
+import java.util.concurrent.LinkedBlockingQueue
+
 
 
 // Advice: always treat time as a Duration
@@ -48,6 +50,10 @@ class PaymentExternalSystemAdapterImpl(
         val emptyBody = RequestBody.create(null, ByteArray(0))
         val mapper = ObjectMapper().registerKotlinModule()
     }
+
+    private val acceptableRisk = 0.5
+
+    private val taskQueue = LinkedBlockingQueue<Task>(10_000)
 
     private val httpDispatcher = Dispatchers.IO.limitedParallelism(32)
     private val esDispatcher = Dispatchers.IO.limitedParallelism(4)
@@ -134,7 +140,8 @@ class PaymentExternalSystemAdapterImpl(
             val waiting = iw - i
 
             logger.warn("[$accountName] IW count $iw")
-            val estimatedProcessingTime = 1000.0 * iw / rateLimitPerSec + 1.0 * requestAverageProcessingTime.toMillis()
+            val coeff = 2 * (1.0 - acceptableRisk)
+            val estimatedProcessingTime = 1000.0 * iw / rateLimitPerSec + coeff * requestAverageProcessingTime.toMillis()
 
             if (estimatedProcessingTime > deadline - paymentStartedAt) {
                 throw TooManyRequestsException(0)
@@ -142,32 +149,22 @@ class PaymentExternalSystemAdapterImpl(
 
             
             waitingOrInProcessSummary.record(inProgressOrWaitingRequestsCount.incrementAndGet().toDouble())
+            taskQueue.put(Task(paymentId, amount, paymentStartedAt, deadline))
         } finally {
             incomingLock.unlock()
         }
         backgroundScope.scope.launch {
-            doAsync(paymentId, amount, paymentStartedAt, deadline)
+            doAsync()
             inProgressOrWaitingRequestsCount.getAndDecrement()
             inProgressRequestsCount.getAndDecrement()
         }
     }
 
-    suspend fun doAsync(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
+    suspend fun doAsync() {
         val enteredPaymentAt = now()
-        logger.warn("[$accountName] Submitting payment request for payment $paymentId")
         paymentRequestsCounter.increment()
 
         val transactionId = UUID.randomUUID()
-
-        withContext(esDispatcher) {
-            // Вне зависимости от исхода оплаты важно отметить что она была отправлена.
-            // Это требуется сделать ВО ВСЕХ СЛУЧАЯХ, поскольку эта информация используется сервисом тестирования.
-            paymentESService.update(paymentId) {
-                it.logSubmission(success = true, transactionId, now(), Duration.ofMillis(now() - paymentStartedAt))
-            }
-        }
-
-        logger.info("[$accountName] Submit: $paymentId , txId: $transactionId")
 
         // ongoingWindow.withPermit {
             // TODO: rate limiter
@@ -175,6 +172,22 @@ class PaymentExternalSystemAdapterImpl(
             while (!rateLimiter.tick()) { delay(10L) }
             getPaymentPerfCounter("rateLimiter").record(now() - s1, TimeUnit.MILLISECONDS)
             paymentStartedCounter.increment()
+
+            val task = taskQueue.take()
+            val paymentId = task.paymentId
+            val amount = task.amount
+            val paymentStartedAt = task.paymentStartedAt
+            val deadline = task.deadline
+
+            logger.info("[$accountName] Submit: $paymentId , txId: $transactionId")
+
+            withContext(esDispatcher) {
+                // Вне зависимости от исхода оплаты важно отметить что она была отправлена.
+                // Это требуется сделать ВО ВСЕХ СЛУЧАЯХ, поскольку эта информация используется сервисом тестирования.
+                paymentESService.update(paymentId) {
+                    it.logSubmission(success = true, transactionId, now(), Duration.ofMillis(now() - paymentStartedAt))
+                }
+            }
 
             val request = Request.Builder().run {
                 url("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=$transactionId&paymentId=$paymentId&amount=$amount")
@@ -250,6 +263,8 @@ class PaymentExternalSystemAdapterImpl(
     override fun isEnabled() = properties.enabled
 
     override fun name() = properties.accountName
+
+    private data class Task(val paymentId: UUID, val amount: Int, val paymentStartedAt: Long, val deadline: Long)
 
 }
 
