@@ -82,12 +82,34 @@ class PaymentExternalSystemAdapterImpl(
             .register(meterRegistry)
     }
 
+    private fun getAttemptsCounter(attempt: Int): Counter {
+        return Counter.builder("payment.attempt")
+            .description("Count of request attempts")
+            .tags(
+                "serviceName", serviceName,
+                "accountName", accountName,
+                "attempt", attempt.toString()
+            )
+            .register(meterRegistry)
+    }
+
     override fun getAverageProcessingTime(): Long {
         return properties.averageProcessingTime.toMillis()
     }
 
-
     override fun performPaymentAsync(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
+        var attempt = 1
+        while (attempt <= 3 && now() + getAverageProcessingTime() * 1.9 <= deadline) {
+            getAttemptsCounter(attempt).increment()
+            val isSuccess = performPaymentAsyncStep(paymentId, amount, paymentStartedAt, deadline)
+            if (isSuccess) {
+                break
+            }
+            attempt += 1
+        }
+    }
+
+    fun performPaymentAsyncStep(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long): Boolean {
         val enteredPaymentAt = now()
         logger.warn("[$accountName] Submitting payment request for payment $paymentId")
         paymentRequestsCounter.increment()
@@ -124,7 +146,7 @@ class PaymentExternalSystemAdapterImpl(
                     mapper.readValue(response.body?.string(), ExternalSysResponse::class.java)
                 } catch (e: Exception) {
                     logger.error("[$accountName] [ERROR] Payment processed for txId: $transactionId, payment: $paymentId, result code: ${response.code}, reason: ${response.body?.string()}")
-                    ExternalSysResponse(transactionId.toString(), paymentId.toString(),false, e.message)
+                    ExternalSysResponse(transactionId.toString(), paymentId.toString(), false, e.message)
                 }
 
                 logger.warn("[$accountName] Payment processed for txId: $transactionId, payment: $paymentId, succeeded: ${body.result}, message: ${body.message}")
@@ -138,6 +160,7 @@ class PaymentExternalSystemAdapterImpl(
                 paymentESService.update(paymentId) {
                     it.logProcessing(body.result, now(), transactionId, reason = body.message)
                 }
+                return body.result
             }
         } catch (e: Exception) {
             when (e) {
@@ -157,6 +180,7 @@ class PaymentExternalSystemAdapterImpl(
                 }
             }
             getPaymentResponsesCounter("exception_error").increment()
+            return false
         } finally {
             ongoingWindow.release()
             val finishedPaymentAt = now()
