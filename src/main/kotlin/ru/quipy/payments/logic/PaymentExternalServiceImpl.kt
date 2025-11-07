@@ -53,7 +53,7 @@ class PaymentExternalSystemAdapterImpl(
 
     // config
     private val maxAttempts = 3
-    private val riskCoeff = 1.8
+    private val riskCoeff = 1.3
     // end config
 
     private val taskQueue = PriorityBlockingQueue<Task>(10_000, Comparator<Task> { t1, t2 ->
