@@ -178,6 +178,7 @@ class PaymentExternalSystemAdapterImpl(
         paymentRequestsCounter.increment()
 
         ongoingWindow.withPermit {
+            // TODO: rate limiter
             val s1 = now()
             rateLimiter.tickCoro()
             getPaymentPerfCounter("rateLimiter").record(now() - s1, TimeUnit.MILLISECONDS)
