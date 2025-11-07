@@ -53,10 +53,8 @@ class PaymentExternalSystemAdapterImpl(
 
     // config
     private val maxAttempts = 3
-    private val acceptableRisk = 0.5
+    private val riskCoeff = 1.8
     // end config
-
-    private val riskCoeff = 2 * (1.0 - acceptableRisk)
 
     private val taskQueue = PriorityBlockingQueue<Task>(10_000, Comparator<Task> { t1, t2 ->
         t1.paymentStartedAt.compareTo(t2.paymentStartedAt)
@@ -149,7 +147,8 @@ class PaymentExternalSystemAdapterImpl(
             val waiting = iw - i
 
             logger.warn("[$accountName] IW count $iw")
-            val estimatedProcessingTime = 1000.0 * iw / rateLimitPerSec + riskCoeff * requestAverageProcessingTime.toMillis()
+            val average = requestAverageProcessingTime.toMillis()
+            val estimatedProcessingTime = average * iw / rateLimitPerSec + (riskCoeff - 1.0) * average 
 
             if (estimatedProcessingTime > deadline - paymentStartedAt) {
                 throw TooManyRequestsException(0)
@@ -179,7 +178,6 @@ class PaymentExternalSystemAdapterImpl(
         paymentRequestsCounter.increment()
 
         ongoingWindow.withPermit {
-            // TODO: rate limiter
             val s1 = now()
             rateLimiter.tickCoro()
             getPaymentPerfCounter("rateLimiter").record(now() - s1, TimeUnit.MILLISECONDS)
@@ -203,7 +201,7 @@ class PaymentExternalSystemAdapterImpl(
             inProgressRequestsCount.getAndIncrement()
 
             val success = doRequestAsync(task)
-            if (!success && task.attempt < 3 && now() + riskCoeff * requestAverageProcessingTime.toMillis() <= task.deadline) {
+            if (!success && task.attempt < maxAttempts && now() + riskCoeff * requestAverageProcessingTime.toMillis() <= task.deadline) {
                 logger.warn("Retrying payment ${task.paymentId}, attempt = ${task.attempt + 1}, because it failed")
                 val newTask = task.copy(attempt = task.attempt + 1)
 
@@ -220,14 +218,14 @@ class PaymentExternalSystemAdapterImpl(
         val startedAt = now()
         try {
             val request = Request.Builder().run {
-                url("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}")
+                val timeout = "%.2f".format(riskCoeff * requestAverageProcessingTime.toMillis() / 1000.0)
+                url("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}&timeout=PT${timeout}S")
                 post(emptyBody)
             }.build()
             val response = client.newCall(request).executeAsync()
             val rawBody = withContext(httpDispatcher) { response.body?.string() }
             val finishedAt = now()
-            
-            logger.info("Request to payment system for payment ${task.paymentId} processed in ${ - task.paymentStartedAt}ms")
+            logger.info("Request to payment system for payment ${task.paymentId} processed in ${finishedAt - task.paymentStartedAt}ms")
 
             val body = try {
                 mapper.readValue(rawBody, ExternalSysResponse::class.java)
