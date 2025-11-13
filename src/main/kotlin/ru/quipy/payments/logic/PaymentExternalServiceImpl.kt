@@ -60,8 +60,8 @@ class PaymentExternalSystemAdapterImpl(
         t1.paymentStartedAt.compareTo(t2.paymentStartedAt)
     })
 
-    private val httpDispatcher = Dispatchers.IO.limitedParallelism(32)
-    private val esDispatcher = Dispatchers.IO.limitedParallelism(4)
+    private val httpDispatcher = Dispatchers.IO.limitedParallelism(64)
+    private val esDispatcher = Dispatchers.IO.limitedParallelism(8)
 
     private val serviceName = properties.serviceName
     private val accountName = properties.accountName
