@@ -24,5 +24,11 @@
         "ratePerSecond": 7,
         "testCount": 800,
         "processingTimeMillis": 3500
+    },
+    "ts-8": {
+        "accounts": "acc-9",
+        "ratePerSecond": 100,
+        "testCount": 5000,
+        "processingTimeMillis": 20000
     }
 }
