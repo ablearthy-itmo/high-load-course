@@ -150,7 +150,7 @@ class PaymentExternalSystemAdapterImpl(
 
             logger.warn("[$accountName] IW count $iw")
             val average = requestAverageProcessingTime.toMillis()
-            val estimatedProcessingTime = average * iw / rateLimitPerSec + (riskCoeff - 1.0) * average 
+            val estimatedProcessingTime = average * iw / rateLimitPerSec
 
             if (estimatedProcessingTime > deadline - paymentStartedAt) {
                 throw TooManyRequestsException(0)
