@@ -84,7 +84,11 @@ class PaymentExternalSystemAdapterImpl(
             maxRequests = parallelRequests
             maxRequestsPerHost = parallelRequests
         })
-        // .connectionPool(ConnectionPool(parallelRequests, 5, TimeUnit.SECONDS))
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .callTimeout(30, TimeUnit.SECONDS)
+        .connectionPool(ConnectionPool(parallelRequests, 5, TimeUnit.SECONDS))
         .build()
 
     private val waitingOrInProcessSummary = DistributionSummary.builder("payment.queue")
@@ -221,7 +225,7 @@ class PaymentExternalSystemAdapterImpl(
         val startedAt = now()
         try {
             val request = Request.Builder().run {
-                val timeout = "%.2f".format(riskCoeff * requestAverageProcessingTime.toMillis() / 1000.0)
+                val timeout = "%.2f".format(2 * requestAverageProcessingTime.toMillis() / 1000.0)
                 url("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}&timeout=PT${timeout}S")
                 post(emptyBody)
             }.build()
