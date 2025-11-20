@@ -84,11 +84,7 @@ class PaymentExternalSystemAdapterImpl(
             maxRequests = parallelRequests
             maxRequestsPerHost = parallelRequests
         })
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .callTimeout(30, TimeUnit.SECONDS)
-        .connectionPool(ConnectionPool(parallelRequests, 5, TimeUnit.SECONDS))
+        // .connectionPool(ConnectionPool(parallelRequests, 5, TimeUnit.SECONDS))
         .build()
 
     private val waitingOrInProcessSummary = DistributionSummary.builder("payment.queue")
@@ -152,9 +148,9 @@ class PaymentExternalSystemAdapterImpl(
             val i = inProgressRequestsCount.get()
             val waiting = iw - i
 
-            logger.warn("[$accountName] IW count $iw")
+            logger.warn("[$accountName] IW count $iw, W count $waiting")
             val average = requestAverageProcessingTime.toMillis()
-            val estimatedProcessingTime = average * iw / rateLimitPerSec
+            val estimatedProcessingTime = average * waiting / rateLimitPerSec
 
             if (estimatedProcessingTime > deadline - paymentStartedAt) {
                 throw TooManyRequestsException(0)
