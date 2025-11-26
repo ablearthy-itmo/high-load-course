@@ -84,7 +84,7 @@ class PaymentExternalSystemAdapterImpl(
             maxRequests = parallelRequests
             maxRequestsPerHost = parallelRequests
         })
-        .connectTimeout(requestAverageProcessingTime * 2, TimeUnit.SECONDS)
+        .connectTimeout(requestAverageProcessingTime.toMillis() * 2, TimeUnit.MILLISECONDS)
         .connectionPool(ConnectionPool(parallelRequests, 15, TimeUnit.SECONDS))
         .build()
 
