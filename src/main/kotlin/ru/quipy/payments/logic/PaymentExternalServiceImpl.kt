@@ -61,8 +61,8 @@ class PaymentExternalSystemAdapterImpl(
         t1.paymentStartedAt.compareTo(t2.paymentStartedAt)
     })
 
-    private val httpDispatcher = Dispatchers.IO.limitedParallelism(64)
-    private val esDispatcher = Dispatchers.IO.limitedParallelism(16)
+    private val httpDispatcher = Dispatchers.IO.limitedParallelism(128)
+    private val esDispatcher = Dispatchers.IO.limitedParallelism(64)
 
     private val serviceName = properties.serviceName
     private val accountName = properties.accountName
@@ -87,7 +87,7 @@ class PaymentExternalSystemAdapterImpl(
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
         .writeTimeout(20, TimeUnit.SECONDS)
-        .connectionPool(ConnectionPool(parallelRequests, 15, TimeUnit.SECONDS))
+        // .connectionPool(ConnectionPool(parallelRequests, 15, TimeUnit.SECONDS))
         .build()
 
     private val waitingOrInProcessSummary = DistributionSummary.builder("payment.queue")
