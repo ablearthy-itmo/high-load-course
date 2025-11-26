@@ -87,7 +87,7 @@ class PaymentExternalSystemAdapterImpl(
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
         .writeTimeout(20, TimeUnit.SECONDS)
-        // .connectionPool(ConnectionPool(parallelRequests, 15, TimeUnit.SECONDS))
+        .connectionPool(ConnectionPool(parallelRequests, 5, TimeUnit.SECONDS))
         .build()
 
     private val waitingOrInProcessSummary = DistributionSummary.builder("payment.queue")
