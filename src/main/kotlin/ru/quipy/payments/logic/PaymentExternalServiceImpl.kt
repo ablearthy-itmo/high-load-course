@@ -84,10 +84,8 @@ class PaymentExternalSystemAdapterImpl(
             maxRequests = parallelRequests
             maxRequestsPerHost = parallelRequests
         })
-        .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(20, TimeUnit.SECONDS)
-        .writeTimeout(20, TimeUnit.SECONDS)
-        .connectionPool(ConnectionPool(parallelRequests, 5, TimeUnit.SECONDS))
+        .connectTimeout(requestAverageProcessingTime * 2, TimeUnit.SECONDS)
+        .connectionPool(ConnectionPool(parallelRequests, 15, TimeUnit.SECONDS))
         .build()
 
     private val waitingOrInProcessSummary = DistributionSummary.builder("payment.queue")
