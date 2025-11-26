@@ -84,9 +84,9 @@ class PaymentExternalSystemAdapterImpl(
             maxRequests = parallelRequests
             maxRequestsPerHost = parallelRequests
         })
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(20, TimeUnit.SECONDS)
+        .writeTimeout(20, TimeUnit.SECONDS)
         .connectionPool(ConnectionPool(parallelRequests, 15, TimeUnit.SECONDS))
         .build()
 
@@ -152,12 +152,12 @@ class PaymentExternalSystemAdapterImpl(
             val waiting = iw - i
 
             logger.warn("[$accountName] IW count $iw, W count $waiting")
-            // val average = requestAverageProcessingTime.toMillis()
-            // val estimatedProcessingTime = average * waiting / rateLimitPerSec
+            val average = requestAverageProcessingTime.toMillis()
+            val estimatedProcessingTime = average * waiting / rateLimitPerSec
 
-            // if (estimatedProcessingTime > deadline - paymentStartedAt) {
-            //     throw TooManyRequestsException(0)
-            // }
+            if (estimatedProcessingTime > deadline - paymentStartedAt) {
+                throw TooManyRequestsException(0)
+            }
 
             val transactionId = UUID.randomUUID()
             val task = Task(paymentId, transactionId, amount, paymentStartedAt, deadline)
