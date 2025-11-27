@@ -87,7 +87,7 @@ class PaymentExternalSystemAdapterImpl(
         })
         .connectTimeout(requestAverageProcessingTime.toMillis() * 2, TimeUnit.MILLISECONDS)
         .connectionPool(ConnectionPool(parallelRequests, 15, TimeUnit.SECONDS))
-        .protocols(listOf(Protocol.HTTP_2))
+        .protocols(listOf(Protocol.H2_PRIOR_KNOWLEDGE))
         .build()
 
     private val waitingOrInProcessSummary = DistributionSummary.builder("payment.queue")
