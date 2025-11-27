@@ -69,7 +69,7 @@ class PaymentExternalSystemAdapterImpl(
     })
 
     // private val httpDispatcher = Dispatchers.IO.limitedParallelism(32)
-    private val esDispatcher = Dispatchers.IO.limitedParallelism(24)
+    private val esDispatcher = Dispatchers.IO.limitedParallelism(64)
 
     private val serviceName = properties.serviceName
     private val accountName = properties.accountName
@@ -82,14 +82,14 @@ class PaymentExternalSystemAdapterImpl(
 
     private val incomingLock = ReentrantLock()
 
-    private val rateLimiter = SlidingWindowRateLimiter(rateLimitPerSec.toLong(), Duration.ofMillis(1000L))
-    // private val rateLimiter = FixedWindowRateLimiter(rateLimitPerSec, 1000, TimeUnit.MILLISECONDS)
+    // private val rateLimiter = SlidingWindowRateLimiter(rateLimitPerSec.toLong(), Duration.ofMillis(1000L))
+    private val rateLimiter = FixedWindowRateLimiter(rateLimitPerSec, 1000, TimeUnit.MILLISECONDS)
     private val ongoingWindow = Semaphore(parallelRequests)
 
     private val httpClient = HttpClient.newBuilder()
         .version(HttpClient.Version.HTTP_2)
         .connectTimeout(Duration.ofSeconds(3))
-        .executor(Executors.newFixedThreadPool(24))
+        .executor(Executors.newFixedThreadPool(64))
         .build()
 
     private val waitingOrInProcessSummary = DistributionSummary.builder("payment.queue")
