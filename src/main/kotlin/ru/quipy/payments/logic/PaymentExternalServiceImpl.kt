@@ -34,6 +34,12 @@ import java.util.concurrent.locks.ReentrantLock
 import ru.quipy.common.utils.TooManyRequestsException
 import java.util.concurrent.PriorityBlockingQueue
 
+import java.net.http.HttpClient 
+import java.net.http.HttpRequest 
+import java.net.http.HttpResponse 
+import java.net.URI
+import kotlinx.coroutines.future.await
+import java.util.concurrent.Executors
 
 
 // Advice: always treat time as a Duration
@@ -58,11 +64,11 @@ class PaymentExternalSystemAdapterImpl(
     private val riskCoeff = 1.5
     // end config
 
-    private val taskQueue = PriorityBlockingQueue<Task>(10_000, Comparator<Task> { t1, t2 ->
+    private val taskQueue = PriorityBlockingQueue<Task>(25_000, Comparator<Task> { t1, t2 ->
         t1.paymentStartedAt.compareTo(t2.paymentStartedAt)
     })
 
-    private val httpDispatcher = Dispatchers.IO.limitedParallelism(32)
+    // private val httpDispatcher = Dispatchers.IO.limitedParallelism(32)
     private val esDispatcher = Dispatchers.IO.limitedParallelism(32)
 
     private val serviceName = properties.serviceName
@@ -80,6 +86,13 @@ class PaymentExternalSystemAdapterImpl(
     // private val rateLimiter = FixedWindowRateLimiter(rateLimitPerSec, 1000, TimeUnit.MILLISECONDS)
     private val ongoingWindow = Semaphore(parallelRequests)
 
+    private val httpClient = HttpClient.newBuilder()
+        .version(HttpClient.Version.HTTP_2)
+        .connectTimeout(Duration.ofSeconds(3))
+        .executor(Executors.newFixedThreadPool(16))
+        .build()
+
+    /*
     private val client = OkHttpClient.Builder()
         .dispatcher(Dispatcher().apply {
             maxRequests = parallelRequests
@@ -91,6 +104,7 @@ class PaymentExternalSystemAdapterImpl(
         .readTimeout(requestAverageProcessingTime.toMillis() * 2, TimeUnit.MILLISECONDS)
         .writeTimeout(requestAverageProcessingTime.toMillis() * 2, TimeUnit.MILLISECONDS)
         .build()
+    */
 
     private val waitingOrInProcessSummary = DistributionSummary.builder("payment.queue")
         .publishPercentiles(0.25, 0.5, 0.75, 0.9, 0.95, 0.99)
@@ -184,7 +198,7 @@ class PaymentExternalSystemAdapterImpl(
     suspend fun doAsync() {
         paymentRequestsCounter.increment()
 
-        // ongoingWindow.withPermit {
+        ongoingWindow.withPermit {
             // TODO: rate limiter
             val s1 = now()
             rateLimiter.tickCoro()
@@ -221,13 +235,13 @@ class PaymentExternalSystemAdapterImpl(
             val finishedPaymentAt = now()
             paymentProcessingTimer.record(finishedPaymentAt - task.paymentStartedAt, TimeUnit.MILLISECONDS)
             logger.info("Payment ${task.paymentId} processed in ${finishedPaymentAt - task.paymentStartedAt}ms, time to deadline ${task.deadline - finishedPaymentAt}ms")
-        // } // end of ongoingWindow
+        } // end of ongoingWindow
     }
 
     private suspend fun doRequestAsync(task: Task): Boolean {
         val startedAt = now()
         try {
-            val request = Request.Builder().run {
+            /* val request = Request.Builder().run {
                 // val timeout = "%.2f".format(riskCoeff * requestAverageProcessingTime.toMillis() / 1000.0)
                 val timeout = "20"
                 url("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}&timeout=PT${timeout}S")
@@ -235,13 +249,24 @@ class PaymentExternalSystemAdapterImpl(
             }.build()
             val response = client.newCall(request).executeAsync()
             val rawBody = withContext(httpDispatcher) { response.body?.string() }
+            */
+            
+            val request = HttpRequest.newBuilder()
+                .uri(URI.create("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}&timeout=PT20S"))
+                .timeout(Duration.ofMillis(2 * requestAverageProcessingTime.toMillis()))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+
+
+            val rawBody = httpClient.sendAsync<String>(request, HttpResponse.BodyHandlers.ofString()).thenApply { it.body() }.await();
+            
             val finishedAt = now()
             logger.info("Request to payment system for payment ${task.paymentId} processed in ${finishedAt - task.paymentStartedAt}ms")
 
             val body = try {
                 mapper.readValue(rawBody, ExternalSysResponse::class.java)
             } catch (e: Exception) {
-                logger.error("[$accountName] [ERROR] Payment processed for txId: ${task.transactionId}, payment: ${task.paymentId}, result code: ${response.code}, reason: $rawBody")
+                logger.error("[$accountName] [ERROR] Payment processed for txId: ${task.transactionId}, payment: ${task.paymentId}, reason: $rawBody")
                 ExternalSysResponse(task.transactionId.toString(), task.paymentId.toString(), false, e.message)
                 return false
             }

@@ -29,102 +29,12 @@
   "liveNow": true,
   "panels": [
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 0
-      },
-      "id": 116,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.2.1",
-      "targets": [
-        {
-          "refId": "A"
-        }
-      ],
-      "title": "New panel",
-      "type": "timeseries"
-    },
-    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 0
       },
       "id": 27,
       "panels": [],
@@ -198,7 +108,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 9
+        "y": 1
       },
       "id": 29,
       "options": {
@@ -299,7 +209,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 9
+        "y": 1
       },
       "id": 26,
       "options": {
@@ -400,7 +310,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 17
+        "y": 9
       },
       "id": 28,
       "options": {
@@ -480,7 +390,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 17
+        "y": 9
       },
       "id": 36,
       "options": {
@@ -598,7 +508,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 25
+        "y": 17
       },
       "id": 37,
       "options": {
@@ -680,7 +590,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 25
+        "y": 17
       },
       "id": 31,
       "options": {
@@ -738,7 +648,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 25
       },
       "id": 10,
       "panels": [],
@@ -803,7 +713,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 34
+        "y": 26
       },
       "id": 2,
       "options": {
@@ -943,7 +853,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 34
+        "y": 26
       },
       "id": 13,
       "options": {
@@ -1046,7 +956,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 42
+        "y": 34
       },
       "id": 25,
       "options": {
@@ -1087,7 +997,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 50
+        "y": 42
       },
       "id": 12,
       "panels": [
@@ -1486,7 +1396,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 51
+        "y": 43
       },
       "id": 17,
       "panels": [],
@@ -1593,7 +1503,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 52
+        "y": 44
       },
       "id": 3,
       "options": {
@@ -1731,7 +1641,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 52
+        "y": 44
       },
       "id": 14,
       "options": {
@@ -1871,7 +1781,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 60
+        "y": 52
       },
       "id": 32,
       "options": {
@@ -2011,7 +1921,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 60
+        "y": 52
       },
       "id": 34,
       "options": {
@@ -2151,7 +2061,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 68
+        "y": 60
       },
       "id": 43,
       "options": {
@@ -2196,7 +2106,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 76
+        "y": 68
       },
       "id": 21,
       "panels": [
@@ -2508,7 +2418,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 77
+        "y": 69
       },
       "id": 38,
       "panels": [
@@ -3023,7 +2933,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 78
+        "y": 70
       },
       "id": 97,
       "panels": [
@@ -3592,7 +3502,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 79
+        "y": 71
       },
       "id": 101,
       "panels": [],
@@ -3665,7 +3575,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 80
+        "y": 72
       },
       "id": 106,
       "options": {
@@ -3760,7 +3670,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 80
+        "y": 72
       },
       "id": 103,
       "options": {
@@ -3975,7 +3885,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 88
+        "y": 80
       },
       "id": 105,
       "options": {
@@ -4069,7 +3979,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 88
+        "y": 80
       },
       "id": 107,
       "options": {
@@ -4216,7 +4126,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 96
+        "y": 88
       },
       "id": 109,
       "options": {
@@ -4311,7 +4221,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 96
+        "y": 88
       },
       "id": 108,
       "options": {
@@ -4457,7 +4367,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 104
+        "y": 96
       },
       "id": 110,
       "options": {
@@ -4617,7 +4527,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 104
+        "y": 96
       },
       "id": 111,
       "options": {
@@ -4763,7 +4673,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 112
+        "y": 104
       },
       "id": 112,
       "options": {
@@ -4845,7 +4755,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 112
+        "y": 104
       },
       "id": 113,
       "options": {
@@ -4948,7 +4858,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 120
+        "y": 112
       },
       "id": 115,
       "options": {
@@ -5043,7 +4953,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 120
+        "y": 112
       },
       "id": 114,
       "options": {
@@ -5188,6 +5098,153 @@
       ],
       "title": "Payment system error response timings",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 120
+      },
+      "id": 116,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.5, sum(rate(payment_part_seconds_bucket{part=\"db\"}[$__rate_interval])) by (le))",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.75, sum(rate(payment_part_seconds_bucket{part=\"db\"}[$__rate_interval])) by (le))",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.90, sum(rate(payment_part_seconds_bucket{part=\"db\"}[$__rate_interval])) by (le))",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, sum(rate(payment_part_seconds_bucket{part=\"db\"}[$__rate_interval])) by (le))",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.99, sum(rate(payment_part_seconds_bucket{part=\"db\"}[$__rate_interval])) by (le))",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "E"
+        }
+      ],
+      "title": "Time spent in DB",
+      "type": "timeseries"
     }
   ],
   "preload": false,
@@ -5257,5 +5314,5 @@
   "timezone": "",
   "title": "Services statistic",
   "uid": "KVr-Vmpnz",
-  "version": 2
+  "version": 3
 }

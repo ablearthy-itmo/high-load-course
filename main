@@ -53,7 +53,7 @@ run_app() {
 
     echo "Running application for test suite $test_suite_key with account = $accounts"
 
-    env $(cat .myenv | xargs) PAYMENT_ACCOUNTS="$accounts" java -jar target/demo-0.0.1-SNAPSHOT.jar
+    env $(cat .myenv | xargs) PAYMENT_ACCOUNTS="$accounts" java -Xmx4192m -jar target/demo-0.0.1-SNAPSHOT.jar
 
     # sudo docker run --env-file .myenv -e PAYMENT_ACCOUNTS="$accounts" --network=host --rm -it localhost/high-load-course:latest
 }
