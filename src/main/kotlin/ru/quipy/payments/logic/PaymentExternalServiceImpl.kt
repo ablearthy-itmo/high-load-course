@@ -211,12 +211,12 @@ class PaymentExternalSystemAdapterImpl(
             inProgressRequestsCount.getAndIncrement()
 
             val success = doRequestAsync(task)
-            if (!success && task.attempt < maxAttempts && now() + riskCoeff * requestAverageProcessingTime.toMillis() <= task.deadline) {
+            /*if (!success && task.attempt < maxAttempts && now() + riskCoeff * requestAverageProcessingTime.toMillis() <= task.deadline) {
                 logger.warn("Retrying payment ${task.paymentId}, attempt = ${task.attempt + 1}, because it failed")
                 val newTask = task.copy(attempt = task.attempt + 1)
 
                 performTaskAsync(newTask)
-            }
+            }*/
 
             val finishedPaymentAt = now()
             paymentProcessingTimer.record(finishedPaymentAt - task.paymentStartedAt, TimeUnit.MILLISECONDS)
