@@ -61,7 +61,7 @@ class PaymentExternalSystemAdapterImpl(
 
     // config
     private val maxAttempts = 3
-    private val riskCoeff = 6
+    private val riskCoeff = 2
     // end config
 
     private val taskQueue = PriorityBlockingQueue<Task>(50_000, Comparator<Task> { t1, t2 ->
@@ -157,9 +157,9 @@ class PaymentExternalSystemAdapterImpl(
             val average = requestAverageProcessingTime.toMillis()
             val estimatedProcessingTime = average * iw / rateLimitPerSec + (riskCoeff - 1.0) * average 
 
-            if (estimatedProcessingTime > deadline - paymentStartedAt) {
+            /*if (estimatedProcessingTime > deadline - paymentStartedAt) {
                 throw TooManyRequestsException(0)
-            }
+            }*/
 
             val transactionId = UUID.randomUUID()
             val task = Task(paymentId, transactionId, amount, paymentStartedAt, deadline)
