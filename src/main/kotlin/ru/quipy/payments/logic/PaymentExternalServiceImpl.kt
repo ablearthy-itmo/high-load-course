@@ -8,6 +8,7 @@ import okhttp3.Dispatcher
 import okhttp3.Request
 import okhttp3.ConnectionPool
 import okhttp3.RequestBody
+import okhttp3.Protocol
 import org.slf4j.LoggerFactory
 import ru.quipy.common.utils.SlidingWindowRateLimiter
 import ru.quipy.common.utils.FixedWindowRateLimiter
@@ -86,6 +87,7 @@ class PaymentExternalSystemAdapterImpl(
         })
         .connectTimeout(requestAverageProcessingTime.toMillis() * 2, TimeUnit.MILLISECONDS)
         .connectionPool(ConnectionPool(parallelRequests, 15, TimeUnit.SECONDS))
+        .protocols(listOf(Protocol.HTTP_2))
         .build()
 
     private val waitingOrInProcessSummary = DistributionSummary.builder("payment.queue")
