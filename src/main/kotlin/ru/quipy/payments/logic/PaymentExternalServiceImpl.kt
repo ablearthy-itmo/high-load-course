@@ -61,15 +61,15 @@ class PaymentExternalSystemAdapterImpl(
 
     // config
     private val maxAttempts = 3
-    private val riskCoeff = 1.5
+    private val riskCoeff = 2
     // end config
 
-    private val taskQueue = PriorityBlockingQueue<Task>(30_000, Comparator<Task> { t1, t2 ->
+    private val taskQueue = PriorityBlockingQueue<Task>(50_000, Comparator<Task> { t1, t2 ->
         t1.paymentStartedAt.compareTo(t2.paymentStartedAt)
     })
 
     // private val httpDispatcher = Dispatchers.IO.limitedParallelism(32)
-    private val esDispatcher = Dispatchers.IO.limitedParallelism(64)
+    private val esDispatcher = Dispatchers.IO.limitedParallelism(24)
 
     private val serviceName = properties.serviceName
     private val accountName = properties.accountName
@@ -89,22 +89,8 @@ class PaymentExternalSystemAdapterImpl(
     private val httpClient = HttpClient.newBuilder()
         .version(HttpClient.Version.HTTP_2)
         .connectTimeout(Duration.ofSeconds(3))
-        .executor(Executors.newFixedThreadPool(32))
+        .executor(Executors.newFixedThreadPool(24))
         .build()
-
-    /*
-    private val client = OkHttpClient.Builder()
-        .dispatcher(Dispatcher().apply {
-            maxRequests = parallelRequests
-            maxRequestsPerHost = parallelRequests
-        })
-        .connectionPool(ConnectionPool(128, 10, TimeUnit.SECONDS))
-        .protocols(listOf(Protocol.H2_PRIOR_KNOWLEDGE))
-        .connectTimeout(3, TimeUnit.SECONDS)
-        .readTimeout(requestAverageProcessingTime.toMillis() * 2, TimeUnit.MILLISECONDS)
-        .writeTimeout(requestAverageProcessingTime.toMillis() * 2, TimeUnit.MILLISECONDS)
-        .build()
-    */
 
     private val waitingOrInProcessSummary = DistributionSummary.builder("payment.queue")
         .publishPercentiles(0.25, 0.5, 0.75, 0.9, 0.95, 0.99)
@@ -171,9 +157,9 @@ class PaymentExternalSystemAdapterImpl(
             val average = requestAverageProcessingTime.toMillis()
             val estimatedProcessingTime = average * iw / rateLimitPerSec + (riskCoeff - 1.0) * average 
 
-            // if (estimatedProcessingTime > deadline - paymentStartedAt) {
-            //     throw TooManyRequestsException(0)
-            // }
+            if (estimatedProcessingTime > deadline - paymentStartedAt) {
+                throw TooManyRequestsException(0)
+            }
 
             val transactionId = UUID.randomUUID()
             val task = Task(paymentId, transactionId, amount, paymentStartedAt, deadline)
@@ -241,18 +227,9 @@ class PaymentExternalSystemAdapterImpl(
     private suspend fun doRequestAsync(task: Task): Boolean {
         val startedAt = now()
         try {
-            /* val request = Request.Builder().run {
-                // val timeout = "%.2f".format(riskCoeff * requestAverageProcessingTime.toMillis() / 1000.0)
-                val timeout = "20"
-                url("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}&timeout=PT${timeout}S")
-                post(emptyBody)
-            }.build()
-            val response = client.newCall(request).executeAsync()
-            val rawBody = withContext(httpDispatcher) { response.body?.string() }
-            */
-            
+            val timeout = "%.2f".format(riskCoeff * requestAverageProcessingTime.toMillis() / 1000.0)
             val request = HttpRequest.newBuilder()
-                .uri(URI.create("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}&timeout=PT20S"))
+                .uri(URI.create("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}&timeout=PT${timeout}S"))
                 .timeout(Duration.ofMillis(2 * requestAverageProcessingTime.toMillis()))
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
