@@ -64,12 +64,12 @@ class PaymentExternalSystemAdapterImpl(
     private val riskCoeff = 1.5
     // end config
 
-    private val taskQueue = PriorityBlockingQueue<Task>(25_000, Comparator<Task> { t1, t2 ->
+    private val taskQueue = PriorityBlockingQueue<Task>(30_000, Comparator<Task> { t1, t2 ->
         t1.paymentStartedAt.compareTo(t2.paymentStartedAt)
     })
 
     // private val httpDispatcher = Dispatchers.IO.limitedParallelism(32)
-    private val esDispatcher = Dispatchers.IO.limitedParallelism(32)
+    private val esDispatcher = Dispatchers.IO.limitedParallelism(64)
 
     private val serviceName = properties.serviceName
     private val accountName = properties.accountName
@@ -89,7 +89,7 @@ class PaymentExternalSystemAdapterImpl(
     private val httpClient = HttpClient.newBuilder()
         .version(HttpClient.Version.HTTP_2)
         .connectTimeout(Duration.ofSeconds(3))
-        .executor(Executors.newFixedThreadPool(16))
+        .executor(Executors.newFixedThreadPool(32))
         .build()
 
     /*
