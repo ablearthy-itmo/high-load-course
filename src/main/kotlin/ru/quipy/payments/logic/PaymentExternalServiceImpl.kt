@@ -89,7 +89,7 @@ class PaymentExternalSystemAdapterImpl(
     private val httpClient = HttpClient.newBuilder()
         .version(HttpClient.Version.HTTP_2)
         .connectTimeout(Duration.ofSeconds(3))
-        .executor(Executors.newFixedThreadPool(64))
+        // .executor(Executors.newFixedThreadPool(4))
         .build()
 
     private val waitingOrInProcessSummary = DistributionSummary.builder("payment.queue")
