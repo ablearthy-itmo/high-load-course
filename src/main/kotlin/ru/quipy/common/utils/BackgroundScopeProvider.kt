@@ -6,7 +6,7 @@ import kotlinx.coroutines.*
 
 @Component
 class BackgroundScopeProvider {
-    val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    val scope = CoroutineScope(Dispatchers.IO.limitedParallelism(32) + SupervisorJob())
     
     @PreDestroy
     fun cleanup() {

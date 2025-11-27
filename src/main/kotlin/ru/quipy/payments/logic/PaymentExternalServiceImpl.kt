@@ -7,6 +7,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Dispatcher
 import okhttp3.Request
 import okhttp3.RequestBody
+import okhttp3.ConnectionPool
+import okhttp3.Protocol
 import org.slf4j.LoggerFactory
 import ru.quipy.common.utils.SlidingWindowRateLimiter
 import ru.quipy.common.utils.FixedWindowRateLimiter
@@ -61,7 +63,7 @@ class PaymentExternalSystemAdapterImpl(
     })
 
     private val httpDispatcher = Dispatchers.IO.limitedParallelism(32)
-    private val esDispatcher = Dispatchers.IO.limitedParallelism(4)
+    private val esDispatcher = Dispatchers.IO.limitedParallelism(32)
 
     private val serviceName = properties.serviceName
     private val accountName = properties.accountName
@@ -83,6 +85,11 @@ class PaymentExternalSystemAdapterImpl(
             maxRequests = parallelRequests
             maxRequestsPerHost = parallelRequests
         })
+        .connectionPool(ConnectionPool(128, 10, TimeUnit.SECONDS))
+        .protocols(listOf(Protocol.H2_PRIOR_KNOWLEDGE))
+        .connectTimeout(3, TimeUnit.SECONDS)
+        .readTimeout(requestAverageProcessingTime.toMillis() * 2, TimeUnit.MILLISECONDS)
+        .writeTimeout(requestAverageProcessingTime.toMillis() * 2, TimeUnit.MILLISECONDS)
         .build()
 
     private val waitingOrInProcessSummary = DistributionSummary.builder("payment.queue")
@@ -150,9 +157,9 @@ class PaymentExternalSystemAdapterImpl(
             val average = requestAverageProcessingTime.toMillis()
             val estimatedProcessingTime = average * iw / rateLimitPerSec + (riskCoeff - 1.0) * average 
 
-            if (estimatedProcessingTime > deadline - paymentStartedAt) {
-                throw TooManyRequestsException(0)
-            }
+            // if (estimatedProcessingTime > deadline - paymentStartedAt) {
+            //     throw TooManyRequestsException(0)
+            // }
 
             val transactionId = UUID.randomUUID()
             val task = Task(paymentId, transactionId, amount, paymentStartedAt, deadline)
@@ -177,7 +184,7 @@ class PaymentExternalSystemAdapterImpl(
     suspend fun doAsync() {
         paymentRequestsCounter.increment()
 
-        ongoingWindow.withPermit {
+        // ongoingWindow.withPermit {
             // TODO: rate limiter
             val s1 = now()
             rateLimiter.tickCoro()
@@ -188,6 +195,7 @@ class PaymentExternalSystemAdapterImpl(
 
             logger.info("[$accountName] Submit: ${task.paymentId} , txId: ${task.transactionId}")
 
+            val dbStart = now()
             withContext(esDispatcher) {
                 // Вне зависимости от исхода оплаты важно отметить что она была отправлена.
                 // Это требуется сделать ВО ВСЕХ СЛУЧАЯХ, поскольку эта информация используется сервисом тестирования.
@@ -195,6 +203,7 @@ class PaymentExternalSystemAdapterImpl(
                     it.logSubmission(success = true, task.transactionId, now(), Duration.ofMillis(now() - task.paymentStartedAt))
                 }
             }
+            getPaymentPerfCounter("db").record(now() - dbStart, TimeUnit.MILLISECONDS)
 
             val startedAt = now()
             paymentQueueTimer.record(startedAt - task.paymentStartedAt, TimeUnit.MILLISECONDS)
@@ -212,14 +221,15 @@ class PaymentExternalSystemAdapterImpl(
             val finishedPaymentAt = now()
             paymentProcessingTimer.record(finishedPaymentAt - task.paymentStartedAt, TimeUnit.MILLISECONDS)
             logger.info("Payment ${task.paymentId} processed in ${finishedPaymentAt - task.paymentStartedAt}ms, time to deadline ${task.deadline - finishedPaymentAt}ms")
-        } // end of ongoingWindow
+        // } // end of ongoingWindow
     }
 
     private suspend fun doRequestAsync(task: Task): Boolean {
         val startedAt = now()
         try {
             val request = Request.Builder().run {
-                val timeout = "%.2f".format(riskCoeff * requestAverageProcessingTime.toMillis() / 1000.0)
+                // val timeout = "%.2f".format(riskCoeff * requestAverageProcessingTime.toMillis() / 1000.0)
+                val timeout = "20"
                 url("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}&timeout=PT${timeout}S")
                 post(emptyBody)
             }.build()
