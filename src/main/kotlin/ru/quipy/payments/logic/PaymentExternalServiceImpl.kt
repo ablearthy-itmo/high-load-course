@@ -62,8 +62,8 @@ class PaymentExternalSystemAdapterImpl(
         t1.paymentStartedAt.compareTo(t2.paymentStartedAt)
     })
 
-    private val httpDispatcher = Dispatchers.IO.limitedParallelism(128)
-    private val esDispatcher = Dispatchers.IO.limitedParallelism(64)
+    private val httpDispatcher = Dispatchers.IO.limitedParallelism(256)
+    private val esDispatcher = Dispatchers.IO.limitedParallelism(128)
 
     private val serviceName = properties.serviceName
     private val accountName = properties.accountName
@@ -76,7 +76,7 @@ class PaymentExternalSystemAdapterImpl(
 
     private val incomingLock = ReentrantLock()
 
-    private val rateLimiter = SlidingWindowRateLimiter(rateLimitPerSec.toLong() / 2, Duration.ofMillis(500L))
+    private val rateLimiter = SlidingWindowRateLimiter(rateLimitPerSec.toLong(), Duration.ofMillis(1000L))
     // private val rateLimiter = FixedWindowRateLimiter(rateLimitPerSec, 1000, TimeUnit.MILLISECONDS)
     private val ongoingWindow = Semaphore(parallelRequests)
 
@@ -85,10 +85,7 @@ class PaymentExternalSystemAdapterImpl(
             maxRequests = parallelRequests
             maxRequestsPerHost = parallelRequests
         })
-        .connectTimeout(requestAverageProcessingTime.toMillis() * 2, TimeUnit.MILLISECONDS)
-        .readTimeout(requestAverageProcessingTime.toMillis() * 2, TimeUnit.MILLISECONDS)
-        .writeTimeout(requestAverageProcessingTime.toMillis() * 2, TimeUnit.MILLISECONDS)
-        .connectionPool(ConnectionPool(parallelRequests, 15, TimeUnit.SECONDS))
+        // .connectionPool(ConnectionPool(parallelRequests, 5, TimeUnit.SECONDS))
         .build()
 
     private val waitingOrInProcessSummary = DistributionSummary.builder("payment.queue")
