@@ -53,6 +53,11 @@ class FixedWindowRateLimiter(
     override fun tick() = semaphore.tryAcquire()
 
     fun tickBlocking() = semaphore.acquire()
+
+    suspend fun tickCoro() {
+        while (!tick()) { delay(10L) }
+    }
+
 }
 
 class SlowStartRateLimiter(
