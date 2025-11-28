@@ -6,7 +6,9 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import okhttp3.OkHttpClient
 import okhttp3.Dispatcher
 import okhttp3.Request
+import okhttp3.ConnectionPool
 import okhttp3.RequestBody
+import okhttp3.Protocol
 import org.slf4j.LoggerFactory
 import ru.quipy.common.utils.SlidingWindowRateLimiter
 import ru.quipy.common.utils.FixedWindowRateLimiter
@@ -53,15 +55,15 @@ class PaymentExternalSystemAdapterImpl(
 
     // config
     private val maxAttempts = 3
-    private val riskCoeff = 1.5
+    private val riskCoeff = 3
     // end config
 
     private val taskQueue = PriorityBlockingQueue<Task>(10_000, Comparator<Task> { t1, t2 ->
         t1.paymentStartedAt.compareTo(t2.paymentStartedAt)
     })
 
-    private val httpDispatcher = Dispatchers.IO.limitedParallelism(32)
-    private val esDispatcher = Dispatchers.IO.limitedParallelism(4)
+    private val httpDispatcher = Dispatchers.IO.limitedParallelism(256)
+    private val esDispatcher = Dispatchers.IO.limitedParallelism(128)
 
     private val serviceName = properties.serviceName
     private val accountName = properties.accountName
@@ -83,6 +85,7 @@ class PaymentExternalSystemAdapterImpl(
             maxRequests = parallelRequests
             maxRequestsPerHost = parallelRequests
         })
+        .connectionPool(ConnectionPool(parallelRequests, 5, TimeUnit.SECONDS))
         .build()
 
     private val waitingOrInProcessSummary = DistributionSummary.builder("payment.queue")
@@ -146,9 +149,9 @@ class PaymentExternalSystemAdapterImpl(
             val i = inProgressRequestsCount.get()
             val waiting = iw - i
 
-            logger.warn("[$accountName] IW count $iw")
+            logger.warn("[$accountName] IW count $iw, W count $waiting")
             val average = requestAverageProcessingTime.toMillis()
-            val estimatedProcessingTime = average * iw / rateLimitPerSec + (riskCoeff - 1.0) * average 
+            val estimatedProcessingTime = average * waiting / rateLimitPerSec
 
             if (estimatedProcessingTime > deadline - paymentStartedAt) {
                 throw TooManyRequestsException(0)
@@ -219,7 +222,7 @@ class PaymentExternalSystemAdapterImpl(
         val startedAt = now()
         try {
             val request = Request.Builder().run {
-                val timeout = "%.2f".format(riskCoeff * requestAverageProcessingTime.toMillis() / 1000.0)
+                val timeout = "%.2f".format(2 * requestAverageProcessingTime.toMillis() / 1000.0)
                 url("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}&timeout=PT${timeout}S")
                 post(emptyBody)
             }.build()

@@ -1100,7 +1100,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 219
+            "y": 43
           },
           "id": 7,
           "options": {
@@ -1237,7 +1237,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 219
+            "y": 43
           },
           "id": 8,
           "options": {
@@ -1337,7 +1337,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 251
+            "y": 75
           },
           "id": 30,
           "options": {
@@ -2144,6 +2144,7 @@
                   "type": "linear"
                 },
                 "showPoints": "auto",
+                "showValues": false,
                 "spanNulls": false,
                 "stacking": {
                   "group": "A",
@@ -2174,7 +2175,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 381
+            "y": 301
           },
           "id": 19,
           "options": {
@@ -2190,7 +2191,7 @@
               "sort": "none"
             }
           },
-          "pluginVersion": "12.1.1",
+          "pluginVersion": "12.2.1",
           "targets": [
             {
               "datasource": {
@@ -2243,6 +2244,7 @@
                   "type": "linear"
                 },
                 "showPoints": "auto",
+                "showValues": false,
                 "spanNulls": false,
                 "stacking": {
                   "group": "A",
@@ -2274,7 +2276,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 381
+            "y": 301
           },
           "id": 22,
           "options": {
@@ -2290,7 +2292,7 @@
               "sort": "none"
             }
           },
-          "pluginVersion": "12.1.1",
+          "pluginVersion": "12.2.1",
           "targets": [
             {
               "datasource": {
@@ -2343,6 +2345,7 @@
                   "type": "linear"
                 },
                 "showPoints": "auto",
+                "showValues": false,
                 "spanNulls": false,
                 "stacking": {
                   "group": "A",
@@ -2373,7 +2376,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 389
+            "y": 309
           },
           "id": 100,
           "options": {
@@ -2389,7 +2392,7 @@
               "sort": "none"
             }
           },
-          "pluginVersion": "12.1.1",
+          "pluginVersion": "12.2.1",
           "targets": [
             {
               "datasource": {
@@ -2482,7 +2485,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 1542
+            "y": 1782
           },
           "id": 40,
           "options": {
@@ -2575,7 +2578,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 1542
+            "y": 1782
           },
           "id": 39,
           "options": {
@@ -2673,7 +2676,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 1582
+            "y": 1822
           },
           "id": 95,
           "options": {
@@ -2782,7 +2785,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 1582
+            "y": 1822
           },
           "id": 42,
           "options": {
@@ -2875,7 +2878,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 1590
+            "y": 1830
           },
           "id": 41,
           "options": {
@@ -2986,7 +2989,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 263
+            "y": 527
           },
           "id": 98,
           "maxDataPoints": 100,
@@ -3089,7 +3092,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 263
+            "y": 527
           },
           "id": 99,
           "maxDataPoints": 100,
@@ -3194,7 +3197,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 295
+            "y": 535
           },
           "id": 24,
           "options": {
@@ -3334,7 +3337,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 303
+            "y": 543
           },
           "id": 4,
           "options": {
@@ -3435,7 +3438,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 303
+            "y": 543
           },
           "id": 96,
           "options": {
@@ -4098,7 +4101,7 @@
               }
             ]
           },
-          "unit": "reqps"
+          "unit": "s"
         },
         "overrides": []
       },
@@ -4126,13 +4129,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(rate(payment_started_total{accountName=~\"$account_name\", serviceName=~\"$service\"}[$__rate_interval]))",
+          "expr": "histogram_quantile(0.95, sum(rate(payment_part_seconds_bucket{part=\"rateLimiter\"}[$__rate_interval])) by (le))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Payment started rps",
+      "title": "Time spent in Rate Limiter",
       "type": "timeseries"
     },
     {
@@ -4367,622 +4370,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "payment_queue{quantile=\"0.25\"}",
-          "legendFormat": "{{quantile}}",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "payment_queue{quantile=\"0.5\"}",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "{{quantile}}",
-          "range": true,
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "payment_queue{quantile=\"0.75\"}",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "{{quantile}}",
-          "range": true,
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "payment_queue{quantile=\"0.9\"}",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "{{quantile}}",
-          "range": true,
-          "refId": "D"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "payment_queue{quantile=\"0.95\"}",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "{{quantile}}",
-          "range": true,
-          "refId": "E"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "payment_queue{quantile=\"0.99\"}",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "{{quantile}}",
-          "range": true,
-          "refId": "F"
-        }
-      ],
-      "title": "Payment queue size",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 96
-      },
-      "id": 111,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.2.1",
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.5, sum(rate(payment_part_seconds_bucket{part=\"rateLimiter\"}[$__rate_interval])) by (le))",
-          "legendFormat": "p50",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.75, sum(rate(payment_part_seconds_bucket{part=\"rateLimiter\"}[$__rate_interval])) by (le))",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "p75",
-          "range": true,
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.9, sum(rate(payment_part_seconds_bucket{part=\"rateLimiter\"}[$__rate_interval])) by (le))",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "p90",
-          "range": true,
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(payment_part_seconds_bucket{part=\"rateLimiter\"}[$__rate_interval])) by (le))",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "p95",
-          "range": true,
-          "refId": "D"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum(rate(payment_part_seconds_bucket{part=\"rateLimiter\"}[$__rate_interval])) by (le))",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "p99",
-          "range": true,
-          "refId": "E"
-        }
-      ],
-      "title": "Time spent in rate limiter",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 104
-      },
-      "id": 112,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.2.1",
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "sum(rate(payment_responses_total{accountName=~\"$account_name\", serviceName=~\"$service\"}[$__rate_interval])) by (status, attempt)",
-          "legendFormat": "{{attempt}} - {{status}}",
+          "expr": "sum(rate(payment_responses_total{accountName=~\"$account_name\", serviceName=~\"$service\"}[$__rate_interval])) by (attempt)",
+          "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Payment responses by status and attempt",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "fillOpacity": 80,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineWidth": 1,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "percentunit"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 104
-      },
-      "id": 113,
-      "options": {
-        "barRadius": 0,
-        "barWidth": 0.97,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "orientation": "auto",
-        "showValue": "auto",
-        "stacking": "none",
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        },
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 0
-      },
-      "pluginVersion": "12.2.1",
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "sum(rate(payment_responses_total{accountName=~\"$account_name\", serviceName=~\"$service\", status=\"error\"}[$__rate_interval])) / sum(rate(payment_responses_total{accountName=~\"$account_name\", serviceName=~\"$service\"}[$__rate_interval]))",
-          "legendFormat": "{{accountName}} - {{serviceName}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Error ratio",
-      "type": "barchart"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 112
-      },
-      "id": 114,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.2.1",
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.1, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "legendFormat": "p10 - {{serviceName}} - {{accountName}}",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.2, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "p20 - {{serviceName}} - {{accountName}}",
-          "range": true,
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.3, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "p30 - {{serviceName}} - {{accountName}}",
-          "range": true,
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.4, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "p40 - {{serviceName}} - {{accountName}}",
-          "range": true,
-          "refId": "D"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.5, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "p50 - {{serviceName}} - {{accountName}}",
-          "range": true,
-          "refId": "E"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.6, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "p60 - {{serviceName}} - {{accountName}}",
-          "range": true,
-          "refId": "F"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.7, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "p70 - {{serviceName}} - {{accountName}}",
-          "range": true,
-          "refId": "G"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.8, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "p80 - {{serviceName}} - {{accountName}}",
-          "range": true,
-          "refId": "H"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.9, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "p90 - {{serviceName}} - {{accountName}}",
-          "range": true,
-          "refId": "I"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "p99 - {{serviceName}} - {{accountName}}",
-          "range": true,
-          "refId": "J"
-        }
-      ],
-      "title": "Payment system error response timings",
+      "title": "Attempts rate",
       "type": "timeseries"
     }
   ],
@@ -5053,5 +4447,5 @@
   "timezone": "",
   "title": "Services statistic",
   "uid": "KVr-Vmpnz",
-  "version": 21
+  "version": 23
 }
