@@ -184,12 +184,6 @@ class PaymentExternalSystemAdapterImpl(
         paymentRequestsCounter.increment()
 
         ongoingWindow.withPermit {
-            // TODO: rate limiter
-            val s1 = now()
-            rateLimiter.tickCoro()
-            getPaymentPerfCounter("rateLimiter").record(now() - s1, TimeUnit.MILLISECONDS)
-            paymentStartedCounter.increment()
-
             val task = taskQueue.take()
 
             logger.info("[$accountName] Submit: ${task.paymentId} , txId: ${task.transactionId}")
@@ -224,6 +218,11 @@ class PaymentExternalSystemAdapterImpl(
     private suspend fun doRequestAsync(task: Task): Boolean {
         val startedAt = now()
         try {
+            val s1 = now()
+            rateLimiter.tickCoro()
+            getPaymentPerfCounter("rateLimiter").record(now() - s1, TimeUnit.MILLISECONDS)
+            paymentStartedCounter.increment()
+
             val request = Request.Builder().run {
                 val timeout = "%.2f".format(2 * requestAverageProcessingTime.toMillis() / 1000.0)
                 url("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}&timeout=PT${timeout}S")
