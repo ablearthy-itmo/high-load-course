@@ -76,7 +76,7 @@ class PaymentExternalSystemAdapterImpl(
 
     private val incomingLock = ReentrantLock()
 
-    private val rateLimiter = SlidingWindowRateLimiter(rateLimitPerSec.toLong(), Duration.ofMillis(1000L))
+    private val rateLimiter = SlidingWindowRateLimiter(rateLimitPerSec.toLong() / 5, Duration.ofMillis(200L))
     // private val rateLimiter = FixedWindowRateLimiter(rateLimitPerSec, 1000, TimeUnit.MILLISECONDS)
     private val ongoingWindow = Semaphore(parallelRequests)
 
