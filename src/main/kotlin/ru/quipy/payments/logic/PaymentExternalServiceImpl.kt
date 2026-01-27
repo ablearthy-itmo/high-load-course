@@ -69,7 +69,7 @@ class PaymentExternalSystemAdapterImpl(
     })
 
     // private val httpDispatcher = Dispatchers.IO.limitedParallelism(32)
-    private val esDispatcher = Dispatchers.IO.limitedParallelism(64)
+    // private val esDispatcher = Dispatchers.IO.limitedParallelism(64)
 
     private val serviceName = properties.serviceName
     private val accountName = properties.accountName
@@ -196,7 +196,7 @@ class PaymentExternalSystemAdapterImpl(
             logger.info("[$accountName] Submit: ${task.paymentId} , txId: ${task.transactionId}")
 
             val dbStart = now()
-            withContext(esDispatcher) {
+            backgroundScope.esScope.launch {
                 // Вне зависимости от исхода оплаты важно отметить что она была отправлена.
                 // Это требуется сделать ВО ВСЕХ СЛУЧАЯХ, поскольку эта информация используется сервисом тестирования.
                 paymentESService.update(task.paymentId) {
@@ -245,8 +245,18 @@ class PaymentExternalSystemAdapterImpl(
             } catch (e: Exception) {
                 logger.error("[$accountName] [ERROR] Payment processed for txId: ${task.transactionId}, payment: ${task.paymentId}, reason: $rawBody")
                 ExternalSysResponse(task.transactionId.toString(), task.paymentId.toString(), false, e.message)
-                return false
             }
+
+            logger.warn("[$accountName] Payment processed for txId: ${task.transactionId}, payment: ${task.paymentId}, succeeded: ${body.result}, message: ${body.message}")
+            
+            backgroundScope.esScope.launch {
+                // Здесь мы обновляем состояние оплаты в зависимости от результата в базе данных оплат.
+                // Это требуется сделать ВО ВСЕХ ИСХОДАХ (успешная оплата / неуспешная / ошибочная ситуация)
+                paymentESService.update(task.paymentId) {
+                    it.logProcessing(body.result, now(), task.transactionId, reason = body.message)
+                }
+            }
+
             
             val status = if (body.result) "success" else "error"
 
@@ -258,7 +268,7 @@ class PaymentExternalSystemAdapterImpl(
             when (e) {
                 is SocketTimeoutException -> {
                     logger.error("[$accountName] Payment timeout for txId: ${task.transactionId}, payment: ${task.paymentId}", e)
-                    withContext(esDispatcher) {
+                    backgroundScope.esScope.launch {
                         paymentESService.update(task.paymentId) {
                             it.logProcessing(false, now(), task.transactionId, reason = "Request timeout.")
                         }
@@ -268,7 +278,7 @@ class PaymentExternalSystemAdapterImpl(
                 else -> {
                     logger.error("[$accountName] Payment failed for txId: ${task.transactionId}, payment: ${task.paymentId}", e)
 
-                    withContext(esDispatcher) {
+                    backgroundScope.esScope.launch {
                         paymentESService.update(task.paymentId) {
                             it.logProcessing(false, now(), task.transactionId, reason = e.message)
                         }
