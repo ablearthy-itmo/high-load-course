@@ -230,7 +230,7 @@ class PaymentExternalSystemAdapterImpl(
             val timeout = "%.2f".format(riskCoeff * requestAverageProcessingTime.toMillis() / 1000.0)
             val request = HttpRequest.newBuilder()
                 .uri(URI.create("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}&timeout=PT${timeout}S"))
-                .timeout(Duration.ofMillis(2 * requestAverageProcessingTime.toMillis()))
+                // .timeout(Duration.ofMillis(2 * requestAverageProcessingTime.toMillis()))
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
 
