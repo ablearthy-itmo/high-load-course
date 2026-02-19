@@ -157,9 +157,9 @@ class PaymentExternalSystemAdapterImpl(
             val average = requestAverageProcessingTime.toMillis()
             val estimatedProcessingTime = average * iw / rateLimitPerSec + (riskCoeff - 1.0) * average 
 
-            /*if (estimatedProcessingTime > deadline - paymentStartedAt) {
+            if (estimatedProcessingTime > deadline - paymentStartedAt) {
                 throw TooManyRequestsException(0)
-            }*/
+            }
 
             val transactionId = UUID.randomUUID()
             val task = Task(paymentId, transactionId, amount, paymentStartedAt, deadline)
@@ -227,11 +227,10 @@ class PaymentExternalSystemAdapterImpl(
     private suspend fun doRequestAsync(task: Task): Boolean {
         val startedAt = now()
         try {
-            // val timeout = "%.2f".format(riskCoeff * requestAverageProcessingTime.toMillis() / 1000.0)
+            val timeout = "%.2f".format(2 * riskCoeff * requestAverageProcessingTime.toMillis() / 1000.0)
             val request = HttpRequest.newBuilder()
-                .uri(URI.create("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}"))
-                // &timeout=PT${timeout}S
-                // .timeout(Duration.ofMillis(2 * requestAverageProcessingTime.toMillis()))
+                .uri(URI.create("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=${task.transactionId}&paymentId=${task.paymentId}&amount=${task.amount}&timeout=PT${timeout}S"))
+                .timeout(Duration.ofMillis(2 * requestAverageProcessingTime.toMillis()))
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
 
