@@ -6,14 +6,9 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import ru.quipy.common.utils.BackgroundScopeProvider
-import ru.quipy.common.utils.CallerBlockingRejectedExecutionHandler
-import ru.quipy.common.utils.NamedThreadFactory
 import ru.quipy.core.EventSourcingService
 import ru.quipy.payments.api.PaymentAggregate
 import java.util.*
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.ThreadPoolExecutor
-import java.util.concurrent.TimeUnit
 
 @Service
 class OrderPayer {
@@ -31,32 +26,23 @@ class OrderPayer {
     @Autowired
     private lateinit var scopeProvider: BackgroundScopeProvider
 
-    private val paymentExecutor = ThreadPoolExecutor(
-        32,
-        32,
-        0L,
-        TimeUnit.MILLISECONDS,
-        LinkedBlockingQueue(32_000),
-        NamedThreadFactory("payment-submission-executor"),
-        CallerBlockingRejectedExecutionHandler()
-    )
 
     fun processPayment(orderId: UUID, amount: Int, paymentId: UUID, deadline: Long): Long {
         val createdAt = System.currentTimeMillis()
-        paymentExecutor.submit {
-            scopeProvider.esScope.launch {
-                val createdEvent = paymentESService.create {
-                    it.create(
-                        paymentId,
-                        orderId,
-                        amount
-                    )
-                }
-                logger.trace("Payment {} for order {} created.", createdEvent.paymentId, orderId)
-            }
 
-            paymentService.submitPaymentRequest(paymentId, amount, createdAt, deadline)
+        scopeProvider.esScope.launch {
+            val createdEvent = paymentESService.create {
+                it.create(
+                    paymentId,
+                    orderId,
+                    amount
+                )
+            }
+            logger.trace("Payment {} for order {} created.", createdEvent.paymentId, orderId)
         }
+
+        paymentService.submitPaymentRequest(paymentId, amount, createdAt, deadline)
+
         return createdAt
     }
 }

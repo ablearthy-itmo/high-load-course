@@ -64,8 +64,6 @@ class PaymentExternalSystemAdapterImpl(
     }
 
     suspend fun performPaymentAsyncImpl(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
-//        logger.warn("[$accountName] Submitting payment request for payment $paymentId")
-
         val transactionId = UUID.randomUUID()
 
         backgroundScope.esScope.launch {
@@ -76,35 +74,45 @@ class PaymentExternalSystemAdapterImpl(
             }
         }
 
-//        logger.info("[$accountName] Submit: $paymentId , txId: $transactionId")
-
-
         ongoingWindow.withPermit {
-            rateLimiter.tickCoro()
-
             val request = HttpRequest.newBuilder()
                 .uri(URI.create("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=$transactionId&paymentId=$paymentId&amount=$amount"))
 //                .timeout(Duration.ofMillis(2 * requestAverageProcessingTime.toMillis() + NETWORKING_DELAY_MILLIS))
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
 
-            val rawBody = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply { it.body() }.await();
-            val body = try {
-                mapper.readValue(rawBody, ExternalSysResponse::class.java)
-            } catch (e: Exception) {
-                logger.error("[$accountName] [ERROR] Payment processed for txId: $transactionId, payment: $paymentId, reason: $rawBody")
-                ExternalSysResponse(transactionId.toString(), paymentId.toString(), false, e.message)
-            }
-
-//            logger.warn("[$accountName] Payment processed for txId: $transactionId, payment: $paymentId, succeeded: ${body.result}, message: ${body.message}")
-
-            backgroundScope.esScope.launch {
-                // Здесь мы обновляем состояние оплаты в зависимости от результата в базе данных оплат.
-                // Это требуется сделать ВО ВСЕХ ИСХОДАХ (успешная оплата / неуспешная / ошибочная ситуация)
-                paymentESService.update(paymentId) {
-                    it.logProcessing(body.result, now(), transactionId, reason = body.message)
+            var i = 0
+            while (i < 3 && now() < deadline) {
+                rateLimiter.tickCoro()
+                val rawBody = try {
+                    httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply { it.body() }.await();
+                } catch (_: Exception) {
+                    i += 1
+                    continue
                 }
+
+                val body = try {
+                    mapper.readValue(rawBody, ExternalSysResponse::class.java)
+                } catch (e: Exception) {
+                    logger.error("[$accountName] [ERROR] Payment processed for txId: $transactionId, payment: $paymentId, reason: $rawBody")
+                    ExternalSysResponse(transactionId.toString(), paymentId.toString(), false, e.message)
+                }
+
+                backgroundScope.esScope.launch {
+                    // Здесь мы обновляем состояние оплаты в зависимости от результата в базе данных оплат.
+                    // Это требуется сделать ВО ВСЕХ ИСХОДАХ (успешная оплата / неуспешная / ошибочная ситуация)
+                    paymentESService.update(paymentId) {
+                        it.logProcessing(body.result, now(), transactionId, reason = body.message)
+                    }
+                }
+                return
             }
+
+           backgroundScope.esScope.launch {
+               paymentESService.update(paymentId) {
+                   it.logProcessing(false, now(), transactionId, reason = "Request timeout.")
+               }
+           }
         }
     }
 
