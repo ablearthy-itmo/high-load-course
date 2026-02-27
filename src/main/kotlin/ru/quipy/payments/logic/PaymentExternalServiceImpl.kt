@@ -64,7 +64,7 @@ class PaymentExternalSystemAdapterImpl(
     }
 
     suspend fun performPaymentAsyncImpl(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
-        logger.warn("[$accountName] Submitting payment request for payment $paymentId")
+//        logger.warn("[$accountName] Submitting payment request for payment $paymentId")
 
         val transactionId = UUID.randomUUID()
 
@@ -76,7 +76,7 @@ class PaymentExternalSystemAdapterImpl(
 //            }
 //        }
 
-        logger.info("[$accountName] Submit: $paymentId , txId: $transactionId")
+//        logger.info("[$accountName] Submit: $paymentId , txId: $transactionId")
 
 
         ongoingWindow.withPermit {
@@ -96,7 +96,7 @@ class PaymentExternalSystemAdapterImpl(
                 ExternalSysResponse(transactionId.toString(), paymentId.toString(), false, e.message)
             }
 
-            logger.warn("[$accountName] Payment processed for txId: $transactionId, payment: $paymentId, succeeded: ${body.result}, message: ${body.message}")
+//            logger.warn("[$accountName] Payment processed for txId: $transactionId, payment: $paymentId, succeeded: ${body.result}, message: ${body.message}")
 
 //            backgroundScope.esScope.launch {
 //                // Здесь мы обновляем состояние оплаты в зависимости от результата в базе данных оплат.
