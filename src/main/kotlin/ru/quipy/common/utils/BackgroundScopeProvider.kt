@@ -6,8 +6,10 @@ import kotlinx.coroutines.*
 
 @Component
 class BackgroundScopeProvider {
-    val scope = CoroutineScope(Dispatchers.IO.limitedParallelism(32) + SupervisorJob())
-    val esScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val scope = CoroutineScope(Dispatchers.IO.limitedParallelism(4) + SupervisorJob())
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val esScope = CoroutineScope(Dispatchers.IO.limitedParallelism(4) + SupervisorJob())
     
     @PreDestroy
     fun cleanup() {
