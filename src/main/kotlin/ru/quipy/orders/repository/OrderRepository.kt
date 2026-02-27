@@ -32,4 +32,8 @@ class OrderRepository {
     fun findById(id: UUID): Order? {
         return orderCache.getIfPresent(id)
     }
+
+    fun delete(id: UUID) {
+        orderCache.invalidate(id)
+    }
 }

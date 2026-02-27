@@ -9,7 +9,7 @@ class BackgroundScopeProvider {
     @OptIn(ExperimentalCoroutinesApi::class)
     val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     @OptIn(DelicateCoroutinesApi::class)
-    val esScope = CoroutineScope(newFixedThreadPoolContext(16, "es-scope"))
+    val esScope = CoroutineScope(newFixedThreadPoolContext(1, "es-scope"))
     
     @PreDestroy
     fun cleanup() {
