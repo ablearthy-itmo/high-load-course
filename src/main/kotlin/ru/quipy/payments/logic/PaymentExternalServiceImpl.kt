@@ -52,7 +52,7 @@ class PaymentExternalSystemAdapterImpl(
     private val httpClient = HttpClient.newBuilder()
         .version(HttpClient.Version.HTTP_2)
         .connectTimeout(Duration.ofSeconds(3))
-        .executor(Executors.newFixedThreadPool(4))
+        .executor(Executors.newFixedThreadPool(8))
         .build()
 
 
@@ -68,13 +68,13 @@ class PaymentExternalSystemAdapterImpl(
 
         val transactionId = UUID.randomUUID()
 
-//        backgroundScope.esScope.launch {
-//            // Вне зависимости от исхода оплаты важно отметить что она была отправлена.
-//            // Это требуется сделать ВО ВСЕХ СЛУЧАЯХ, поскольку эта информация используется сервисом тестирования.
-//            paymentESService.update(paymentId) {
-//                it.logSubmission(success = true, transactionId, now(), Duration.ofMillis(now() - paymentStartedAt))
-//            }
-//        }
+        backgroundScope.esScope.launch {
+            // Вне зависимости от исхода оплаты важно отметить что она была отправлена.
+            // Это требуется сделать ВО ВСЕХ СЛУЧАЯХ, поскольку эта информация используется сервисом тестирования.
+            paymentESService.update(paymentId) {
+                it.logSubmission(success = true, transactionId, now(), Duration.ofMillis(now() - paymentStartedAt))
+            }
+        }
 
 //        logger.info("[$accountName] Submit: $paymentId , txId: $transactionId")
 
@@ -84,7 +84,7 @@ class PaymentExternalSystemAdapterImpl(
 
             val request = HttpRequest.newBuilder()
                 .uri(URI.create("http://$paymentProviderHostPort/external/process?serviceName=$serviceName&token=$token&accountName=$accountName&transactionId=$transactionId&paymentId=$paymentId&amount=$amount"))
-                .timeout(Duration.ofMillis(2 * requestAverageProcessingTime.toMillis() + NETWORKING_DELAY_MILLIS))
+//                .timeout(Duration.ofMillis(2 * requestAverageProcessingTime.toMillis() + NETWORKING_DELAY_MILLIS))
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
 
@@ -98,13 +98,13 @@ class PaymentExternalSystemAdapterImpl(
 
 //            logger.warn("[$accountName] Payment processed for txId: $transactionId, payment: $paymentId, succeeded: ${body.result}, message: ${body.message}")
 
-//            backgroundScope.esScope.launch {
-//                // Здесь мы обновляем состояние оплаты в зависимости от результата в базе данных оплат.
-//                // Это требуется сделать ВО ВСЕХ ИСХОДАХ (успешная оплата / неуспешная / ошибочная ситуация)
-//                paymentESService.update(paymentId) {
-//                    it.logProcessing(body.result, now(), transactionId, reason = body.message)
-//                }
-//            }
+            backgroundScope.esScope.launch {
+                // Здесь мы обновляем состояние оплаты в зависимости от результата в базе данных оплат.
+                // Это требуется сделать ВО ВСЕХ ИСХОДАХ (успешная оплата / неуспешная / ошибочная ситуация)
+                paymentESService.update(paymentId) {
+                    it.logProcessing(body.result, now(), transactionId, reason = body.message)
+                }
+            }
         }
     }
 
