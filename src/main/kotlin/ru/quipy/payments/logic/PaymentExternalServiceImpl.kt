@@ -74,7 +74,11 @@ class PaymentExternalSystemAdapterImpl(
             select<Unit> {
                 async { performPaymentAsyncImpl(paymentId, amount, paymentStartedAt, deadline) }.onAwait {}
                 async {
-                    delay(700)
+                    // delay(700)
+                    performPaymentAsyncImpl(paymentId, amount, paymentStartedAt, deadline)
+                }.onAwait {}
+                async {
+                    // delay(700)
                     performPaymentAsyncImpl(paymentId, amount, paymentStartedAt, deadline)
                 }.onAwait {}
             }
