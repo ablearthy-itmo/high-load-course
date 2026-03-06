@@ -5,6 +5,8 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.slf4j.LoggerFactory
@@ -59,7 +61,11 @@ class PaymentExternalSystemAdapterImpl(
 
     override fun performPaymentAsync(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
         backgroundScope.scope.launch {
-            performPaymentAsyncImpl(paymentId, amount, paymentStartedAt, deadline)
+            select<Unit> {
+                async { performPaymentAsyncImpl(paymentId, amount, paymentStartedAt, deadline) }.onAwait {}
+                async { performPaymentAsyncImpl(paymentId, amount, paymentStartedAt, deadline) }.onAwait {}
+            }
+            coroutineContext.cancelChildren()
         }
     }
 
