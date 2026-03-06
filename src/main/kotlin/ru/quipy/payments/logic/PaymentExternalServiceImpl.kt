@@ -22,6 +22,9 @@ import java.time.Duration
 import java.util.*
 import java.util.concurrent.Executors
 
+// import java.util.concurrent.TimeUnit
+// import io.micrometer.core.instrument.Counter
+// import io.micrometer.core.instrument.Timer
 
 // Advice: always treat time as a Duration
 class PaymentExternalSystemAdapterImpl(
@@ -57,13 +60,23 @@ class PaymentExternalSystemAdapterImpl(
         .executor(Executors.newFixedThreadPool(8))
         .build()
 
+    // private fun getPaymentSystemProcessingTimer(status: String): Timer {
+    //     return Timer.builder("payment_system.processing")
+    //         .description("Payment system response timings")
+    //         .publishPercentileHistogram()
+    //         .tags("serviceName", serviceName, "accountName", accountName, "status", status)
+    //         .register(meterRegistry)
+    // }
 
 
     override fun performPaymentAsync(paymentId: UUID, amount: Int, paymentStartedAt: Long, deadline: Long) {
         backgroundScope.scope.launch {
             select<Unit> {
                 async { performPaymentAsyncImpl(paymentId, amount, paymentStartedAt, deadline) }.onAwait {}
-                async { performPaymentAsyncImpl(paymentId, amount, paymentStartedAt, deadline) }.onAwait {}
+                async {
+                    delay(700)
+                    performPaymentAsyncImpl(paymentId, amount, paymentStartedAt, deadline)
+                }.onAwait {}
             }
             coroutineContext.cancelChildren()
         }
@@ -90,12 +103,14 @@ class PaymentExternalSystemAdapterImpl(
             var i = 0
             while (i < 3 && now() < deadline) {
                 rateLimiter.tickCoro()
+                // val startedAt = now()
                 val rawBody = try {
                     httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply { it.body() }.await();
                 } catch (_: Exception) {
                     i += 1
                     continue
                 }
+                // val finishedAt = now()
 
                 val body = try {
                     mapper.readValue(rawBody, ExternalSysResponse::class.java)
@@ -104,6 +119,8 @@ class PaymentExternalSystemAdapterImpl(
                     ExternalSysResponse(transactionId.toString(), paymentId.toString(), false, e.message)
                 }
 
+                // val status = if (body.result) "success" else "error"
+                // getPaymentSystemProcessingTimer(status).record(finishedAt - startedAt, TimeUnit.MILLISECONDS)
                 backgroundScope.esScope.launch {
                     // Здесь мы обновляем состояние оплаты в зависимости от результата в базе данных оплат.
                     // Это требуется сделать ВО ВСЕХ ИСХОДАХ (успешная оплата / неуспешная / ошибочная ситуация)

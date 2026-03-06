@@ -21,31 +21,31 @@ class Warmup : ApplicationListener<ApplicationReadyEvent> {
     private lateinit var apiController: APIController
 
     override fun onApplicationEvent(event: ApplicationReadyEvent) {
-        logger.info("Warmup started")
+        // logger.info("Warmup started")
 
-        orderRepository.findById(UUID.randomUUID())
+        // orderRepository.findById(UUID.randomUUID())
 
-        for (i in 0..10000) {
-            val o = APIController.Order(
-                UUID.randomUUID(),
-                UUID.randomUUID(),
-                System.currentTimeMillis(),
-                OrderStatus.COLLECTING,
-                10
-            )
+        // for (i in 0..10000) {
+        //     val o = APIController.Order(
+        //         UUID.randomUUID(),
+        //         UUID.randomUUID(),
+        //         System.currentTimeMillis(),
+        //         OrderStatus.COLLECTING,
+        //         10
+        //     )
 
-            orderRepository.save(o)
-            orderRepository.findById(o.id)
-            orderRepository.delete(o.id)
-        }
+        //     orderRepository.save(o)
+        //     orderRepository.findById(o.id)
+        //     orderRepository.delete(o.id)
+        // }
 
 
-        for (i in 0..1000) {
-            val o = apiController.createOrder(UUID.randomUUID(), 10)
-            apiController.payOrder(o.id, System.currentTimeMillis() + 10_000)
-            orderRepository.delete(o.id)
-        }
+        // for (i in 0..1000) {
+        //     val o = apiController.createOrder(UUID.randomUUID(), 10)
+        //     apiController.payOrder(o.id, System.currentTimeMillis() + 10_000)
+        //     orderRepository.delete(o.id)
+        // }
 
-        logger.info("Warmup finished!")
+        // logger.info("Warmup finished!")
     }
 }
