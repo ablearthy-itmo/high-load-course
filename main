@@ -11,7 +11,7 @@ show_help() {
 Usage: $SCRIPT_NAME <command> [arguments] [options]
 
 Commands:
-    build                                 Build the Docker image
+    build-docker                          Build the Docker image
     build-mvn                             Build the project using Maven
     run <test-suite>                      Run the application for specified test-suite
     build-run <test-suite>                Build and then run the application for specified test-suite
@@ -20,7 +20,7 @@ Commands:
     help                                  Show this help message
 
 Examples:
-    $SCRIPT_NAME build
+    $SCRIPT_NAME build-docker
     $SCRIPT_NAME build-mvn
     $SCRIPT_NAME run "acc-5,acc-23"
     $SCRIPT_NAME build-run "ts-5"
@@ -103,7 +103,7 @@ stop_test() {
 
 # Main script logic
 case "${1:-help}" in
-    "build")
+    "build-docker")
         build
         ;;
     "build-mvn")
