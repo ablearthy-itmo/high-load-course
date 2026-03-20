@@ -75,8 +75,8 @@ class PaymentExternalSystemAdapterImpl(
         .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.TIME_BASED)
         .slidingWindowSize(1) // seconds
         .failureRateThreshold(25f) 
-        // .slowCallRateThreshold(25f)
-        // .slowCallDurationThreshold(Duration.ofMillis(expectedProcessingTimeMillis))
+        .slowCallRateThreshold(25f)
+        .slowCallDurationThreshold(Duration.ofMillis(400))
         .waitDurationInOpenState(Duration.ofMillis(15_000))
         .permittedNumberOfCallsInHalfOpenState(1)
         .recordExceptions(IOException::class.java, InterruptedException::class.java)
