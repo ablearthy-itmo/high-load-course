@@ -77,7 +77,7 @@ class PaymentExternalSystemAdapterImpl(
         .failureRateThreshold(25f) 
         // .slowCallRateThreshold(25f)
         // .slowCallDurationThreshold(Duration.ofMillis(expectedProcessingTimeMillis))
-        .waitDurationInOpenState(Duration.ofMillis(60_000))
+        .waitDurationInOpenState(Duration.ofMillis(15_000))
         .permittedNumberOfCallsInHalfOpenState(1)
         .recordExceptions(IOException::class.java, InterruptedException::class.java)
         // .ignoreExceptions(BusinessException::class.java, OtherBusinessException::class.java)
