@@ -24,7 +24,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "id": 2,
   "links": [],
   "liveNow": true,
   "panels": [
@@ -124,7 +123,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -133,7 +132,6 @@
           },
           "editorMode": "code",
           "expr": "sum(rate(payment_finished_total{service=~\"$service\"}[30s])) by (service, outcome, failReason)",
-          "hide": false,
           "instant": false,
           "legendFormat": "{{outcome}} - {{failReason}}",
           "range": true,
@@ -225,7 +223,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -326,7 +324,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -335,7 +333,6 @@
           },
           "editorMode": "code",
           "expr": "sum(increase(payments_amount_total{service=~\"$service\"}[1m])) by (service) / (sum(increase(payments_amount_total{service=~\"$service\"}[1m])) by (service) + sum(increase(external_amount_total{service=~\"$service\"}[1m])) by (service))",
-          "hide": false,
           "instant": false,
           "legendFormat": "income - {{service}}",
           "range": true,
@@ -348,7 +345,6 @@
           },
           "editorMode": "code",
           "expr": "sum(increase(external_amount_total{service=~\"$service\"}[1m])) by (service) / (sum(increase(payments_amount_total{service=~\"$service\"}[1m])) by (service) + sum(increase(external_amount_total{service=~\"$service\"}[1m])) by (service))",
-          "hide": false,
           "instant": false,
           "legendFormat": "expenses - {{service}} ",
           "range": true,
@@ -410,7 +406,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -419,7 +415,6 @@
           },
           "editorMode": "code",
           "expr": "sum(increase(payments_amount_total{service=~\"$service\"}[$__range])) by (service) / (sum(increase(payments_amount_total{service=~\"$service\"}[$__range])) by (service) + sum(increase(external_amount_total{service=~\"$service\"}[$__range])) by (service))",
-          "hide": false,
           "instant": false,
           "legendFormat": "income - {{service}}",
           "range": true,
@@ -432,7 +427,6 @@
           },
           "editorMode": "code",
           "expr": "sum(increase(external_amount_total{service=~\"$service\"}[$__range])) by (service) / (sum(increase(payments_amount_total{service=~\"$service\"}[$__range])) by (service) + sum(increase(external_amount_total{service=~\"$service\"}[$__range])) by (service))",
-          "hide": false,
           "instant": false,
           "legendFormat": "expenses - {{service}} ",
           "range": true,
@@ -526,7 +520,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -535,7 +529,6 @@
           },
           "editorMode": "code",
           "expr": "sum(increase(payments_amount_total{service=~\"$service\"}[1m])) by (service)",
-          "hide": false,
           "instant": false,
           "legendFormat": "income - {{service}}",
           "range": true,
@@ -548,7 +541,6 @@
           },
           "editorMode": "code",
           "expr": "sum(increase(external_amount_total{service=~\"$service\", accountName=~\"$account_name\"}[1m])) by (service, accountName) ",
-          "hide": false,
           "instant": false,
           "legendFormat": "expenses - {{service}} - {{accountName}}",
           "range": true,
@@ -610,7 +602,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -619,7 +611,6 @@
           },
           "editorMode": "code",
           "expr": "sum(increase(payments_amount_total{service=~\"$service\"}[$__range])) by (service)",
-          "hide": false,
           "instant": false,
           "legendFormat": "income - {{service}}",
           "range": true,
@@ -632,7 +623,6 @@
           },
           "editorMode": "code",
           "expr": "sum(increase(external_amount_total{service=~\"$service\", accountName=~\"$account_name\"}[$__range])) by (service, accountName) ",
-          "hide": false,
           "instant": false,
           "legendFormat": "expenses - {{service}} - {{accountName}}",
           "range": true,
@@ -733,7 +723,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -871,7 +861,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -972,7 +962,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1279,7 +1269,6 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -1377,7 +1366,6 @@
               },
               "exemplar": true,
               "expr": "",
-              "hide": false,
               "interval": "",
               "legendFormat": "",
               "refId": "B"
@@ -1521,7 +1509,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1531,7 +1519,6 @@
           "editorMode": "code",
           "exemplar": true,
           "expr": "sum(rate(http_external_duration_count{service=~\"$service\"}[$__rate_interval])) by (method)",
-          "hide": false,
           "interval": "",
           "legendFormat": "{{method}}",
           "range": true,
@@ -1661,7 +1648,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1671,7 +1658,6 @@
           "editorMode": "code",
           "exemplar": true,
           "expr": "rate(http_external_duration_sum{service=~\"$service\"}[1m]) / rate(http_external_duration_count{service=~\"$service\"}[1m])",
-          "hide": false,
           "interval": "",
           "legendFormat": "{{method}} - {{result}}",
           "range": true,
@@ -1801,7 +1787,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1811,7 +1797,6 @@
           "editorMode": "code",
           "exemplar": true,
           "expr": "rate(external_sys_duration_count{service=~\"$service\"}[$__rate_interval])",
-          "hide": false,
           "interval": "",
           "legendFormat": "{{accountName}} - {{outcome}}",
           "range": true,
@@ -1941,7 +1926,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -1951,7 +1936,6 @@
           "editorMode": "code",
           "exemplar": true,
           "expr": "rate(external_sys_duration_sum{service=~\"$service\"}[1m]) / rate(external_sys_duration_count{service=~\"$service\"}[1m])",
-          "hide": false,
           "interval": "",
           "legendFormat": "{{accountName}} - {{outcome}}",
           "range": true,
@@ -2081,7 +2065,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "datasource": {
@@ -2090,7 +2074,6 @@
           },
           "editorMode": "code",
           "expr": "rate(http_request_latent_sum{service=~\"$service\"}[15s]) / rate(http_request_latent_count{service=~\"$service\"}[15s])",
-          "hide": false,
           "instant": false,
           "legendFormat": "{{method}} - {{result}}",
           "range": true,
@@ -3591,12 +3574,12 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(rate(payment_requests_total[$__rate_interval])) by (serviceName, accountName)",
-          "legendFormat": "{{serviceName}} - {{accountName}}",
+          "expr": "sum(rate(http_client_requests_duration_seconds_count{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (serviceName, accountName, status)",
+          "legendFormat": "{{serviceName}} - {{accountName}} - {{status}}",
           "range": true,
           "refId": "A"
         }
@@ -3686,12 +3669,12 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "editorMode": "code",
           "exemplar": false,
-          "expr": "histogram_quantile(0.1, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (le, serviceName, accountName))",
+          "expr": "histogram_quantile(0.1, sum(rate(http_client_requests_duration_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", dest=\"payment_service\"}[$__rate_interval])) by (le, serviceName, accountName))",
           "format": "time_series",
           "instant": false,
           "legendFormat": "p10 - {{serviceName}} - {{accountName}}",
@@ -3704,8 +3687,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.2, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
+          "expr": "histogram_quantile(0.2, sum(rate(http_client_requests_duration_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", dest=\"payment_service\"}[$__rate_interval])) by (le, serviceName, accountName))",
           "instant": false,
           "legendFormat": "p20 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -3717,8 +3699,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.3, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
+          "expr": "histogram_quantile(0.3, sum(rate(http_client_requests_duration_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", dest=\"payment_service\"}[$__rate_interval])) by (le, serviceName, accountName))",
           "instant": false,
           "legendFormat": "p30 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -3730,8 +3711,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.4, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
+          "expr": "histogram_quantile(0.4, sum(rate(http_client_requests_duration_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", dest=\"payment_service\"}[$__rate_interval])) by (le, serviceName, accountName))",
           "instant": false,
           "legendFormat": "p40 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -3743,8 +3723,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.5, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
+          "expr": "histogram_quantile(0.5, sum(rate(http_client_requests_duration_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", dest=\"payment_service\"}[$__rate_interval])) by (le, serviceName, accountName))",
           "instant": false,
           "legendFormat": "p50 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -3756,8 +3735,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.6, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
+          "expr": "histogram_quantile(0.6, sum(rate(http_client_requests_duration_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", dest=\"payment_service\"}[$__rate_interval])) by (le, serviceName, accountName))",
           "instant": false,
           "legendFormat": "p60 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -3769,8 +3747,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.7, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
+          "expr": "histogram_quantile(0.7, sum(rate(http_client_requests_duration_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", dest=\"payment_service\"}[$__rate_interval])) by (le, serviceName, accountName))",
           "instant": false,
           "legendFormat": "p70 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -3782,8 +3759,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.8, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
+          "expr": "histogram_quantile(0.8, sum(rate(http_client_requests_duration_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", dest=\"payment_service\"}[$__rate_interval])) by (le, serviceName, accountName))",
           "instant": false,
           "legendFormat": "p80 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -3795,8 +3771,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.9, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
+          "expr": "histogram_quantile(0.9, sum(rate(http_client_requests_duration_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", dest=\"payment_service\"}[$__rate_interval])) by (le, serviceName, accountName))",
           "instant": false,
           "legendFormat": "p90 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -3808,8 +3783,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
+          "expr": "histogram_quantile(0.99, sum(rate(http_client_requests_duration_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", dest=\"payment_service\"}[$__rate_interval])) by (le, serviceName, accountName))",
           "instant": false,
           "legendFormat": "p99 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -3901,7 +3875,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "editorMode": "code",
@@ -3995,7 +3969,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "editorMode": "code",
@@ -4011,7 +3985,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.75, sum(rate(payment_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (serviceName, accountName, le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p75 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -4024,7 +3997,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.9, sum(rate(payment_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (serviceName, accountName, le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p90 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -4037,7 +4009,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.95, sum(rate(payment_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (serviceName, accountName, le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p95 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -4050,7 +4021,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.99, sum(rate(payment_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (serviceName, accountName, le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p99 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -4142,7 +4112,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "editorMode": "code",
@@ -4237,7 +4207,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "editorMode": "code",
@@ -4253,7 +4223,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.75, sum(rate(payment_queue_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (serviceName, accountName, le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p75 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -4266,7 +4235,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.9, sum(rate(payment_queue_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (serviceName, accountName, le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p90 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -4279,7 +4247,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.95, sum(rate(payment_queue_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (serviceName, accountName, le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p95 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -4292,7 +4259,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.99, sum(rate(payment_queue_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\"}[$__rate_interval])) by (serviceName, accountName, le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p99 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -4383,7 +4349,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "editorMode": "code",
@@ -4399,7 +4365,6 @@
           },
           "editorMode": "code",
           "expr": "payment_queue{quantile=\"0.5\"}",
-          "hide": false,
           "instant": false,
           "legendFormat": "{{quantile}}",
           "range": true,
@@ -4412,7 +4377,6 @@
           },
           "editorMode": "code",
           "expr": "payment_queue{quantile=\"0.75\"}",
-          "hide": false,
           "instant": false,
           "legendFormat": "{{quantile}}",
           "range": true,
@@ -4425,7 +4389,6 @@
           },
           "editorMode": "code",
           "expr": "payment_queue{quantile=\"0.9\"}",
-          "hide": false,
           "instant": false,
           "legendFormat": "{{quantile}}",
           "range": true,
@@ -4438,7 +4401,6 @@
           },
           "editorMode": "code",
           "expr": "payment_queue{quantile=\"0.95\"}",
-          "hide": false,
           "instant": false,
           "legendFormat": "{{quantile}}",
           "range": true,
@@ -4451,7 +4413,6 @@
           },
           "editorMode": "code",
           "expr": "payment_queue{quantile=\"0.99\"}",
-          "hide": false,
           "instant": false,
           "legendFormat": "{{quantile}}",
           "range": true,
@@ -4543,7 +4504,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "editorMode": "code",
@@ -4559,7 +4520,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.75, sum(rate(payment_part_seconds_bucket{part=\"rateLimiter\"}[$__rate_interval])) by (le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p75",
           "range": true,
@@ -4572,7 +4532,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.9, sum(rate(payment_part_seconds_bucket{part=\"rateLimiter\"}[$__rate_interval])) by (le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p90",
           "range": true,
@@ -4585,7 +4544,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.95, sum(rate(payment_part_seconds_bucket{part=\"rateLimiter\"}[$__rate_interval])) by (le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p95",
           "range": true,
@@ -4598,7 +4556,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.99, sum(rate(payment_part_seconds_bucket{part=\"rateLimiter\"}[$__rate_interval])) by (le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p99",
           "range": true,
@@ -4689,7 +4646,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "editorMode": "code",
@@ -4780,7 +4737,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 0
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.4.1",
       "targets": [
         {
           "editorMode": "code",
@@ -4985,7 +4942,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.2, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p20 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -4998,7 +4954,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.3, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p30 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -5011,7 +4966,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.4, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p40 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -5024,7 +4978,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.5, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p50 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -5037,7 +4990,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.6, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p60 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -5050,7 +5002,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.7, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p70 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -5063,7 +5014,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.8, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p80 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -5076,7 +5026,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.9, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p90 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -5089,7 +5038,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.99, sum(rate(payment_system_processing_seconds_bucket{serviceName=~\"$service\", accountName=~\"$account_name\", status!=\"success\"}[$__rate_interval])) by (le, serviceName, accountName))",
-          "hide": false,
           "instant": false,
           "legendFormat": "p99 - {{serviceName}} - {{accountName}}",
           "range": true,
@@ -5197,7 +5145,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.75, sum(rate(payment_part_seconds_bucket{part=\"db\"}[$__rate_interval])) by (le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -5210,7 +5157,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.90, sum(rate(payment_part_seconds_bucket{part=\"db\"}[$__rate_interval])) by (le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -5223,7 +5169,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.95, sum(rate(payment_part_seconds_bucket{part=\"db\"}[$__rate_interval])) by (le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -5236,7 +5181,6 @@
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.99, sum(rate(payment_part_seconds_bucket{part=\"db\"}[$__rate_interval])) by (le))",
-          "hide": false,
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -5274,6 +5218,7 @@
         },
         "refresh": 1,
         "regex": "",
+        "regexApplyTo": "value",
         "type": "query"
       },
       {
@@ -5296,6 +5241,7 @@
         },
         "refresh": 1,
         "regex": "",
+        "regexApplyTo": "value",
         "type": "query"
       }
     ]
@@ -5311,8 +5257,9 @@
       "30s"
     ]
   },
-  "timezone": "",
+  "timezone": "browser",
   "title": "Services statistic",
   "uid": "KVr-Vmpnz",
-  "version": 3
+  "version": 3,
+  "weekStart": ""
 }

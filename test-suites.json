@@ -30,5 +30,11 @@
         "ratePerSecond": 1000,
         "testCount": 200000,
         "processingTimeMillis": 50000
+    },
+    "ts-12": {
+        "accounts": "acc-19",
+        "ratePerSecond": 100,
+        "testCount": 50000,
+        "processingTimeMillis": 10000000
     }
 }
