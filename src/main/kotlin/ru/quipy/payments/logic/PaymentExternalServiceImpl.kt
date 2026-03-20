@@ -73,12 +73,12 @@ class PaymentExternalSystemAdapterImpl(
 
     private val circuitBreakerConfig = CircuitBreakerConfig.custom()
         .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.TIME_BASED)
-        .slidingWindowSize(10) // seconds
+        .slidingWindowSize(5) // seconds
         .failureRateThreshold(25f) 
         .slowCallRateThreshold(75f)
         .slowCallDurationThreshold(Duration.ofMillis(expectedProcessingTimeMillis))
-        .waitDurationInOpenState(Duration.ofMillis(60_000))
-        .permittedNumberOfCallsInHalfOpenState(20)
+        .waitDurationInOpenState(Duration.ofMillis(5_000))
+        .permittedNumberOfCallsInHalfOpenState(15)
         .recordExceptions(IOException::class.java, InterruptedException::class.java)
         .build()
     private val circuitBreakerRegistry = CircuitBreakerRegistry.of(circuitBreakerConfig)
